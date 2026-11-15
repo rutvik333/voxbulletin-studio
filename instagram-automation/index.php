@@ -250,47 +250,21 @@ input:checked + .slider:before{transform:translateX(20px)}
       </p>
     </div>
 
+    <div class="field" style="margin-top:14px">
+      <label>HOSTINGER / PUBLIC BASE URL (OPTIONAL)</label>
+      <input id="publicBaseUrlInput" type="text" placeholder="https://voxbulletin.com (or leave empty for automatic cloud image hosting)">
+      <p class="muted" style="margin-top:5px;font-size:12px">Optional: If hosted on Hostinger, enter your domain URL here. If left empty, images are automatically uploaded via secure cloud CDN for Buffer publishing.</p>
+    </div>
+
     <div class="actions" style="margin-top:18px">
       <button type="button" class="btn blue" onclick="syncBufferNow()" id="syncBufferBtn">⚡ Connect & Sync Real Channels</button>
-      <button type="submit" class="btn alt">Save Token Only</button>
+      <button type="submit" class="btn alt">Save Settings</button>
     </div>
     <div id="bufferMsg" class="status"></div>
   </form>
 </div>
 
-<!-- Section 3: Direct Meta Graph API (Optional) -->
-<div class="panel" style="max-width:760px;margin:24px auto">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-    <div>
-      <h2 style="font-size:18px;margin:0 0 4px">🔗 Direct Meta Graph API (Instagram & Facebook)</h2>
-      <div class="muted">Optional direct publishing to Instagram Business without third-party services.</div>
-    </div>
-    <span id="metaPill" class="pill">● OPTIONAL</span>
-  </div>
-  <div class="divider"></div>
-  <form id="metaForm" onsubmit="saveMetaSettings(event)">
-    <div class="field">
-      <label>META USER / PAGE ACCESS TOKEN</label>
-      <input id="metaTokenInput" type="password" placeholder="EAAG... (Requires instagram_content_publish scope)">
-    </div>
-    <div class="field">
-      <label>INSTAGRAM BUSINESS ACCOUNT ID</label>
-      <input id="metaIgInput" type="text" placeholder="e.g. 17841400000000000">
-    </div>
-    <div class="field">
-      <label>PUBLIC BASE URL / DOMAIN (FOR IMAGE HOSTING)</label>
-      <input id="publicBaseUrlInput" type="text" placeholder="https://voxbulletin.com (or leave empty if local)">
-      <p class="muted" style="margin-top:5px;font-size:12px">Cloud APIs require a publicly accessible image URL. If hosted on Hostinger or custom domain, enter your domain URL here.</p>
-    </div>
-    <div class="actions" style="margin-top:18px">
-      <button type="button" class="btn blue small" onclick="verifyMetaNow()" id="verifyMetaBtn">✓ Verify & Connect Instagram</button>
-      <button type="submit" class="btn alt small">Save Meta Config</button>
-    </div>
-    <div id="metaMsg" class="status"></div>
-  </form>
-</div>
-
-<!-- Section 4: Connected Channels List -->
+<!-- Section 3: Connected Channels List -->
 <div class="panel" style="max-width:760px;margin:24px auto">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div>
@@ -1221,8 +1195,6 @@ async function loadSettings(){
 
     if(j.buffer_access_token && $('bufferTokenInput')) $('bufferTokenInput').value=j.buffer_access_token;
     if(j.public_base_url && $('publicBaseUrlInput')) $('publicBaseUrlInput').value=j.public_base_url;
-    if(j.meta_access_token && $('metaTokenInput')) $('metaTokenInput').value=j.meta_access_token;
-    if(j.meta_instagram_id && $('metaIgInput')) $('metaIgInput').value=j.meta_instagram_id;
 
     // Gemini pill
     const gp=$('geminiPill');
@@ -1249,18 +1221,6 @@ async function loadSettings(){
       }else{
         bp.textContent='● NOT CONNECTED';
         bp.style.background='#382215';bp.style.borderColor='#784920';bp.style.color='#ffd699';
-      }
-    }
-
-    // Meta pill
-    const mp=$('metaPill');
-    if(mp){
-      if(j.meta_access_token){
-        mp.textContent='● META CONNECTED';
-        mp.style.background='#123528';mp.style.borderColor='#245a45';mp.style.color='#71e5aa';
-      }else{
-        mp.textContent='● OPTIONAL';
-        mp.style.background='#1a243b';mp.style.borderColor='#2b3c5e';mp.style.color='#93c5fd';
       }
     }
   }catch(e){console.error('loadSettings error:', e)}
@@ -1336,75 +1296,22 @@ async function syncBufferNow(){
 async function saveBufferSettings(e){
   e.preventDefault();
   const tok = $('bufferTokenInput').value.trim();
+  const pubUrl = $('publicBaseUrlInput') ? $('publicBaseUrlInput').value.trim() : '';
   const msg = $('bufferMsg');
   try{
     const res = await req('save_settings', {
       method: 'POST',
-      body: JSON.stringify({ buffer_access_token: tok })
-    });
-    msg.textContent = '✓ Buffer token saved!';
-    msg.className = 'status';
-    await loadSettings();
-  }catch(err){
-    msg.textContent = '✗ ' + err.message;
-    msg.className = 'status error';
-  }
-}
-
-async function saveMetaSettings(e){
-  e.preventDefault();
-  const metaToken = $('metaTokenInput').value.trim();
-  const metaIg = $('metaIgInput').value.trim();
-  const pubUrl = $('publicBaseUrlInput').value.trim();
-  const msg = $('metaMsg');
-  try{
-    const res = await req('save_settings', {
-      method: 'POST',
       body: JSON.stringify({
-        meta_access_token: metaToken,
-        meta_instagram_id: metaIg,
+        buffer_access_token: tok,
         public_base_url: pubUrl
       })
     });
-    msg.textContent = '✓ Meta configuration saved!';
+    msg.textContent = '✓ Publishing configuration saved!';
     msg.className = 'status';
     await loadSettings();
   }catch(err){
     msg.textContent = '✗ ' + err.message;
     msg.className = 'status error';
-  }
-}
-
-async function verifyMetaNow(){
-  const token = $('metaTokenInput').value.trim();
-  const igId = $('metaIgInput').value.trim();
-  const msg = $('metaMsg');
-  const btn = $('verifyMetaBtn');
-  if(!token || !igId){
-    msg.textContent = 'Please provide both Meta Access Token and Instagram Account ID.';
-    msg.className = 'status error';
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = 'Verifying with Meta API...';
-  msg.textContent = 'Contacting Meta Graph API (graph.facebook.com)...';
-  msg.className = 'status';
-
-  try{
-    const res = await req('meta_verify', {
-      method: 'POST',
-      body: JSON.stringify({ access_token: token, instagram_id: igId })
-    });
-    msg.textContent = '✓ ' + res.message;
-    msg.className = 'status';
-    await loadChannels();
-    await loadSettings();
-  }catch(err){
-    msg.textContent = '✗ ' + err.message;
-    msg.className = 'status error';
-  }finally{
-    btn.disabled = false;
-    btn.textContent = '✓ Verify & Connect Instagram';
   }
 }
 
