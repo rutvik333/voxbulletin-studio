@@ -30,6 +30,22 @@ if (!$isCli && $cronKey !== $secretKey && !empty($_GET['key'])) {
     die(json_encode(['ok' => false, 'error' => 'Invalid cron security key']));
 }
 
+function cleanFandomWire($text) {
+    if (!$text) return '';
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = preg_replace('/\s*[-–—|]\s*Fandom\s*Wire.*$/i', '', $text);
+    $text = preg_replace('/\b(This post belongs to and first appeared on|The post .* appeared first on).*$/i', '', $text);
+    $text = preg_replace('/\b(according to|per|as reported by|via)\s+Fandom\s*Wire,?\s*/i', '', $text);
+    $text = preg_replace('/\bFandom\s*Wire\s+(reports|reported|reveals|revealed|claims|claimed|stated)\s+(that\s+)?/i', 'Reports indicate ', $text);
+    $text = preg_replace('/#?Fandom\s*Wire(\.com)?\b/i', '', $text);
+    $text = preg_replace('/\s*\[…\]\s*$/', '', $text);
+    $text = preg_replace('/\s*\[\.\.\.\]\s*$/', '', $text);
+    $text = preg_replace('/\s+\[\.\.\.\]\s*/', ' ', $text);
+    $text = preg_replace('/\s+\[…\]\s*/', ' ', $text);
+    $text = preg_replace('/\s+/', ' ', $text);
+    return trim($text);
+}
+
 function hexToRgb($hex) {
     $hex = ltrim($hex, '#');
     if (strlen($hex) === 3) {
@@ -148,9 +164,17 @@ function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $
     $lineH = (int)($fontSize * 1.25);
 
     // 5. Description Lines (Inter Bold)
+    $cleanDesc = cleanFandomWire($description);
+    $cleanDesc = preg_replace('/\s*(\.\.\.|…)\s*$/', '.', $cleanDesc);
+    if (!str_ends_with($cleanDesc, '.') && !str_ends_with($cleanDesc, '!') && !str_ends_with($cleanDesc, '?')) {
+        $cleanDesc .= '.';
+    }
     $fontDesc = __DIR__ . '/fonts/Inter-Bold.ttf';
     $descSize = 17;
-    $dlines = wrapTextTtf($descSize, 0, $fontDesc, trim($description), 940);
+    $dlines = wrapTextTtf($descSize, 0, $fontDesc, $cleanDesc, 940);
+    if (count($dlines) > 4) {
+        $dlines = array_slice($dlines, 0, 4);
+    }
     $dlineH = (int)($descSize * 1.5);
 
     $totalHlH = count($lines) * $lineH;
@@ -212,17 +236,7 @@ function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $
 }
 
 function cleanText($text) {
-    if (!$text) return '';
-    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $text = preg_replace('/\s*[-–—|]\s*Fandom\s*Wire.*$/i', '', $text);
-    $text = preg_replace('/\b(This post belongs to and first appeared on|The post .* appeared first on).*$/i', '', $text);
-    $text = preg_replace('/\b(according to|per|as reported by|via)\s+Fandom\s*Wire,?\s*/i', '', $text);
-    $text = preg_replace('/\bFandom\s*Wire\s+(reports|reported|reveals|revealed|claims|claimed|stated)\s+(that\s+)?/i', 'Reports indicate ', $text);
-    $text = preg_replace('/#?Fandom\s*Wire(\.com)?\b/i', '', $text);
-    $text = preg_replace('/\s*\[…\]\s*$/', '...', $text);
-    $text = preg_replace('/\s*\[\.\.\.\]\s*$/', '...', $text);
-    $text = preg_replace('/\s+/', ' ', $text);
-    return trim($text);
+    return cleanFandomWire($text);
 }
 
 function uploadToCdn($filePath, $bytes) {
@@ -290,7 +304,7 @@ if (!function_exists('callGeminiWithFailover')) {
         }
 
         $isJson = !empty($options['json']);
-        $preferredModel = $options['model'] ?? 'gemini-3.8-flash';
+        $preferredModel = $options['model'] ?? 'gemini-3.5-flash';
         $temperature = $options['temperature'] ?? 0.25;
 
         $generationConfig = ['temperature' => $temperature];
@@ -305,7 +319,7 @@ if (!function_exists('callGeminiWithFailover')) {
             'generationConfig' => $generationConfig
         ], JSON_UNESCAPED_SLASHES);
 
-        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-3.5-flash']));
+        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash']));
         $errors = [];
 
         foreach ($keys as $idx => $key) {
@@ -317,7 +331,10 @@ if (!function_exists('callGeminiWithFailover')) {
                 curl_setopt_array($ch, [
                     CURLOPT_POST => true,
                     CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT => 35,
+                    CURLOPT_TIMEOUT => 18,
+                    CURLOPT_CONNECTTIMEOUT => 6,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
                     CURLOPT_POSTFIELDS => $payload
                 ]);
@@ -343,16 +360,15 @@ if (!function_exists('callGeminiWithFailover')) {
                 $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
 
                 if ($isQuota) {
-                    $errors[] = "Key #" . ($idx + 1) . " ($masked): Daily quota exceeded (HTTP $code)";
-                    break;
+                    $errors[] = "Key #" . ($idx + 1) . " ($masked) on $model: Quota exceeded (HTTP $code)";
+                    continue;
                 }
 
                 if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
                     continue;
                 }
 
-                $errors[] = "Key #" . ($idx + 1) . " ($masked): $errMsg";
-                break;
+                $errors[] = "Key #" . ($idx + 1) . " ($masked) on $model: $errMsg";
             }
         }
 
@@ -566,29 +582,50 @@ usort($candidates, function($a, $b) {
 $chosen = $candidates[0];
 
 // 5. Rewrite Copy with Google Gemini AI (with Automatic Multi-Key Failover)
-$hl = $chosen['title'];
-$desc = $chosen['description'];
-$caption = $chosen['title'] . "\n\n" . $chosen['description'] . "\n\n#voxbulletin #EntertainmentNews";
+$cleanSourceDesc = cleanFandomWire($chosen['description']);
+$hl = cleanFandomWire($chosen['title']);
+$desc = $cleanSourceDesc;
+
+// Clean fallback sentences: exactly 1-2 complete sentences ending in period
+if (preg_match('/^([^\.\!\?]+[\.\!\?](?:\s+[^\.\!\?]+[\.\!\?])?)/', $cleanSourceDesc, $sm)) {
+    if (strlen($sm[1]) <= 200) {
+        $desc = $sm[1];
+    }
+}
+$desc = preg_replace('/\s*(\.\.\.|…)\s*$/', '.', $desc);
+$caption = $hl . "\n\n" . $desc . "\n\n#voxbulletin #EntertainmentNews";
 $captionX = '';
 $keyUsedInfo = '';
 
-$prompt = "You are the lead editor for VoxBulletin, an elite entertainment news brand.\n" .
-          "Article Title: " . $chosen['title'] . "\n" .
-          "Article Summary: " . $chosen['description'] . "\n" .
-          "Task: Create a punchy viral headline (6-12 words uppercase, no quotes), a clean 2-sentence summary under 200 chars for the graphic, a full multi-paragraph Instagram/Facebook caption with hook and hashtags (#voxbulletin #EntertainmentNews), and a Twitter/X post strictly UNDER 260 characters with #voxbulletin.\n" .
-          "Respond ONLY in valid JSON matching this schema: {\"headline\": \"...\", \"description\": \"...\", \"caption\": \"...\", \"caption_x\": \"...\"}";
+$prompt = "You are an entertainment news graphic editor for VOX BULLETIN. Return a JSON object with keys: headline, description, caption, caption_x.\n\n"
+        . "CRITICAL BRANDING RULES:\n"
+        . "- The news brand is VOX BULLETIN.\n"
+        . "- STRICTLY FORBIDDEN: NEVER mention 'FandomWire', 'Fandom Wire', or 'fandomwire.com' anywhere in headline, description, caption, or caption_x.\n\n"
+        . "STRICT FORMAT REQUIREMENTS:\n"
+        . "1. 'headline': 8-12 punchy uppercase words (55-80 characters). All-caps, concise, high impact, no quotes.\n"
+        . "2. 'description': Exactly 1 to 2 COMPLETE, well-formed sentences. STRICT LENGTH LIMIT: Exactly 25 to 35 words (strictly between 170 and 220 characters total). MUST fit neatly into 4 lines on Instagram portrait cards. Every sentence MUST be 100% grammatically complete and end with a full stop period (.) — NEVER truncate, never leave incomplete thoughts, and never end with an ellipsis (...).\n"
+        . "3. 'caption': 300-600 characters ready to publish on Instagram with 4-6 relevant entertainment hashtags starting with #voxbulletin.\n"
+        . "4. 'caption_x': Strictly under 260 characters with #voxbulletin.\n\n"
+        . "Source Title: " . $chosen['title'] . "\n"
+        . "Source Excerpt: " . $cleanSourceDesc;
 
-$gCall = callGeminiWithFailover($prompt, $config, ['json' => true]);
+$gCall = callGeminiWithFailover($prompt, $config, ['json' => true, 'model' => 'gemini-3.5-flash']);
 if (!empty($gCall['ok'])) {
     $rawTxt = $gCall['text'] ?? '';
     if (preg_match('/\{[\s\S]*\}/', $rawTxt, $m)) {
         $parsed = json_decode($m[0], true);
-        if (!empty($parsed['headline'])) $hl = cleanText($parsed['headline']);
-        if (!empty($parsed['description'])) $desc = cleanText($parsed['description']);
-        if (!empty($parsed['caption'])) $caption = trim($parsed['caption']);
-        if (!empty($parsed['caption_x'])) $captionX = trim($parsed['caption_x']);
+        if (!empty($parsed['headline'])) $hl = cleanFandomWire($parsed['headline']);
+        if (!empty($parsed['description'])) $desc = cleanFandomWire($parsed['description']);
+        if (!empty($parsed['caption'])) $caption = cleanFandomWire($parsed['caption']);
+        if (!empty($parsed['caption_x'])) $captionX = cleanFandomWire($parsed['caption_x']);
     }
     $keyUsedInfo = ' (via ' . ($gCall['key_used'] ?? 'Gemini') . ($gCall['failovers'] > 0 ? ', failovers: ' . $gCall['failovers'] : '') . ')';
+}
+$desc = cleanFandomWire($desc);
+$desc = trim($desc, " \t\n\r\0\x0B\"'");
+$desc = preg_replace('/\s*(\.\.\.|…)\s*$/', '.', $desc);
+if (!str_ends_with($desc, '.') && !str_ends_with($desc, '!') && !str_ends_with($desc, '?')) {
+    $desc .= '.';
 }
 
 // 6. Guarantee Twitter / X character ceiling <= 280

@@ -624,7 +624,20 @@ function drawRoundedRect(ctx, x, y, w, h, r){
   }
 }
 const $=id=>document.getElementById(id);
-async function req(action,options={}){const r=await fetch('api/index.php?action='+action,{credentials:'same-origin',headers:{...(options.body?{'Content-Type':'application/json'}:{}),'X-CSRF-Token':csrf},...options});const j=await r.json();if(!r.ok)throw Error(j.error+(j.details?' — '+j.details:''));return j}
+async function req(action,options={}){
+  const r=await fetch('api/index.php?action='+action,{credentials:'same-origin',headers:{...(options.body?{'Content-Type':'application/json'}:{}),'X-CSRF-Token':csrf},...options});
+  let j;
+  const rawText = await r.text();
+  try {
+    j = JSON.parse(rawText);
+  } catch (err) {
+    if (r.status === 504) throw Error('Server Gateway Timeout (HTTP 504). The AI request took too long. We have optimized model failover — please try again.');
+    if (r.status === 502) throw Error('Server Bad Gateway (HTTP 502). Please check server logs and try again.');
+    throw Error('Server returned unexpected response (HTTP ' + r.status + ').');
+  }
+  if(!r.ok)throw Error((j && j.error) ? (j.error + (j.details ? ' — ' + j.details : '')) : ('Request failed with HTTP ' + r.status));
+  return j;
+}
 $('loginForm').onsubmit=async e=>{e.preventDefault();try{const j=await req('login',{method:'POST',body:JSON.stringify({password:$('password').value})});csrf=j.csrf;$('login').classList.add('hide');$('app').classList.remove('hide');loadSettings();loadChannels();fetchNews();render()}catch(e){$('loginErr').textContent=e.message}};
 async function logout(){await req('logout',{method:'POST'});location.reload()}
 
@@ -1763,7 +1776,7 @@ function render(){
   const hlLineH=Math.round(finalHlFont*1.13);
 
   // 5. Description sizing & line-wrapping (strictly fits 4-5 complete lines without truncation)
-  const desc=($('description').value||'Your concise story summary will appear here.').toUpperCase().trim();
+  const desc=($('description').value||'Your concise story summary will appear here.').trim();
   const descLen=desc.length;
   let descFont=25;
   if(descLen>225)descFont=23;

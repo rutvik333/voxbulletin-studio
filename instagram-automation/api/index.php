@@ -41,8 +41,10 @@ function cleanFandomWire($text){
  $text=preg_replace('/\b(according to|per|as reported by|via)\s+Fandom\s*Wire,?\s*/i','',$text);
  $text=preg_replace('/\bFandom\s*Wire\s+(reports|reported|reveals|revealed|claims|claimed|stated)\s+(that\s+)?/i','Reports indicate ',$text);
  $text=preg_replace('/#?Fandom\s*Wire(\.com)?\b/i','',$text);
- $text=preg_replace('/\s*\[…\]\s*$/','...',$text);
- $text=preg_replace('/\s*\[\.\.\.\]\s*$/','...',$text);
+ $text=preg_replace('/\s*\[…\]\s*$/','',$text);
+ $text=preg_replace('/\s*\[\.\.\.\]\s*$/','',$text);
+ $text=preg_replace('/\s+\[\.\.\.\]\s*/',' ',$text);
+ $text=preg_replace('/\s+\[…\]\s*/',' ',$text);
  $text=preg_replace('/\s+/',' ',$text);
  return trim($text);
 }
@@ -110,148 +112,151 @@ function getGeminiKeysPool($cfg) {
 }
 
 function testGeminiApiKey($key) {
- $key = trim((string)$key);
- if (!$key || str_contains($key, 'PASTE_')) {
-  return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
- }
+	$key = trim((string)$key);
+	if (!$key || str_contains($key, 'PASTE_')) {
+		return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
+	}
 
- $modelsToTry = ['gemini-3.8-flash', 'gemini-3.5-flash'];
- $lastErr = '';
- $lastCode = 0;
+	$modelsToTry = ['gemini-3.5-flash', 'gemini-3.8-flash'];
+	$lastErr = '';
+	$lastCode = 0;
+	$quotaHitOn = [];
 
- foreach ($modelsToTry as $model) {
-  $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . '?key=' . urlencode($key);
+	foreach ($modelsToTry as $model) {
+		$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . '?key=' . urlencode($key);
 
-  $ch = curl_init($url);
-  curl_setopt_array($ch, [
-   CURLOPT_HTTPGET => true,
-   CURLOPT_RETURNTRANSFER => true,
-   CURLOPT_TIMEOUT => 15,
-   CURLOPT_HTTPHEADER => ['User-Agent: VoxBulletin/2.0']
-  ]);
-  $resRaw = curl_exec($ch);
-  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-  $curlErr = curl_error($ch);
-  curl_close($ch);
+		$ch = curl_init($url);
+		curl_setopt_array($ch, [
+			CURLOPT_HTTPGET => true,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT => 15,
+			CURLOPT_SSL_VERIFYPEER => false,
+			CURLOPT_SSL_VERIFYHOST => false,
+			CURLOPT_HTTPHEADER => ['User-Agent: VoxBulletin/2.0']
+		]);
+		$resRaw = curl_exec($ch);
+		$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$curlErr = curl_error($ch);
+		curl_close($ch);
 
-  if ($code === 200) {
-   return ['ok' => true, 'model' => $model, 'message' => "Key is active and responsive (200 OK via $model)!"];
-  }
+		if ($code === 200) {
+			return ['ok' => true, 'model' => $model, 'message' => "Key is active and responsive (200 OK via $model)!"];
+		}
 
-  $res = json_decode($resRaw ?: '', true);
-  $errMsg = $res['error']['message'] ?? ($curlErr ?: ('HTTP ' . $code));
-  $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+		$res = json_decode($resRaw ?: '', true);
+		$errMsg = $res['error']['message'] ?? ($curlErr ?: ('HTTP ' . $code));
+		$isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
 
-  if ($isQuota) {
-   return [
-    'ok' => false,
-    'error' => "Daily quota reached (HTTP 429 / RESOURCE_EXHAUSTED). Key is valid! Failover to backup keys is ready.",
-    'is_quota' => true,
-    'code' => $code
-   ];
-  }
+		if ($isQuota) {
+			$quotaHitOn[] = $model;
+			$lastErr = "Daily quota reached on $model (HTTP $code). Key is valid! Failover to backup keys is ready.";
+			$lastCode = $code;
+			continue;
+		}
 
-  if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
-   $lastErr = $errMsg;
-   $lastCode = $code;
-   continue;
-  }
+		if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
+			$lastErr = $errMsg;
+			$lastCode = $code;
+			continue;
+		}
 
-  return [
-   'ok' => false,
-   'error' => $errMsg,
-   'is_quota' => false,
-   'code' => $code
-  ];
- }
+		return [
+			'ok' => false,
+			'error' => $errMsg,
+			'is_quota' => false,
+			'code' => $code
+		];
+	}
 
- return [
-  'ok' => false,
-  'error' => $lastErr ?: 'Validation failed across tested Gemini models.',
-  'is_quota' => false,
-  'code' => $lastCode
- ];
+	return [
+		'ok' => false,
+		'error' => $lastErr ?: 'Validation failed across tested Gemini models.',
+		'is_quota' => !empty($quotaHitOn),
+		'code' => $lastCode
+	];
 }
 
 function callGeminiWithFailover($prompt, $cfg, $options = []) {
- $keys = getGeminiKeysPool($cfg);
- if (empty($keys)) {
-  return ['ok' => false, 'error' => 'No Gemini API keys configured. Please add one or more keys in Settings.'];
- }
+	$keys = getGeminiKeysPool($cfg);
+	if (empty($keys)) {
+		return ['ok' => false, 'error' => 'No Gemini API keys configured. Please add one or more keys in Settings.'];
+	}
 
- $isJson = !empty($options['json']);
- $preferredModel = $options['model'] ?? 'gemini-3.8-flash';
- $temperature = $options['temperature'] ?? 0.25;
+	$isJson = !empty($options['json']);
+	$preferredModel = $options['model'] ?? 'gemini-3.5-flash';
+	$temperature = $options['temperature'] ?? 0.25;
 
- $generationConfig = ['temperature' => $temperature];
- if ($isJson) {
-  $generationConfig['responseMimeType'] = 'application/json';
- }
+	$generationConfig = ['temperature' => $temperature];
+	if ($isJson) {
+		$generationConfig['responseMimeType'] = 'application/json';
+	}
 
- $payload = json_encode([
-  'contents' => [
-   ['parts' => [['text' => $prompt]]]
-  ],
-  'generationConfig' => $generationConfig
- ], JSON_UNESCAPED_SLASHES);
+	$payload = json_encode([
+		'contents' => [
+			['parts' => [['text' => $prompt]]]
+		],
+		'generationConfig' => $generationConfig
+	], JSON_UNESCAPED_SLASHES);
 
- $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-3.5-flash']));
- $errors = [];
+	$modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash']));
+	$errors = [];
 
- foreach ($keys as $idx => $key) {
-  $masked = (strlen($key) > 10) ? substr($key, 0, 6) . '...' . substr($key, -4) : 'Key#' . ($idx + 1);
+	foreach ($keys as $idx => $key) {
+		$masked = (strlen($key) > 10) ? substr($key, 0, 6) . '...' . substr($key, -4) : 'Key#' . ($idx + 1);
 
-  foreach ($modelsToTry as $model) {
-   $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
-   $ch = curl_init($url);
-   curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 45,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
-    CURLOPT_POSTFIELDS => $payload
-   ]);
-   $raw = curl_exec($ch);
-   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-   curl_close($ch);
+		foreach ($modelsToTry as $model) {
+			$url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
+			$ch = curl_init($url);
+			curl_setopt_array($ch, [
+				CURLOPT_POST => true,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_TIMEOUT => 18,
+				CURLOPT_CONNECTTIMEOUT => 6,
+				CURLOPT_SSL_VERIFYPEER => false,
+				CURLOPT_SSL_VERIFYHOST => false,
+				CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+				CURLOPT_POSTFIELDS => $payload
+			]);
+			$raw = curl_exec($ch);
+			$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
 
-   $res = json_decode($raw ?: '', true);
+			$res = json_decode($raw ?: '', true);
 
-   if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
-    return [
-     'ok' => true,
-     'text' => $res['candidates'][0]['content']['parts'][0]['text'],
-     'key_index' => $idx,
-     'key_used' => $masked,
-     'model_used' => $model,
-     'failovers' => $idx,
-     'data' => $res
-    ];
-   }
+			if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
+				return [
+					'ok' => true,
+					'text' => $res['candidates'][0]['content']['parts'][0]['text'],
+					'key_index' => $idx,
+					'key_used' => $masked,
+					'model_used' => $model,
+					'failovers' => $idx,
+					'data' => $res
+				];
+			}
 
-   $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
-   $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+			$errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
+			$isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
 
-   if ($isQuota) {
-    $errors[] = "Key #" . ($idx + 1) . " ($masked): Daily quota exceeded (HTTP $code)";
-    break;
-   }
+			if ($isQuota) {
+				$errors[] = "Key #" . ($idx + 1) . " ($masked) on $model: Quota exceeded (HTTP $code)";
+				continue;
+			}
 
-   if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
-    continue;
-   }
+			if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
+				continue;
+			}
 
-   $errors[] = "Key #" . ($idx + 1) . " ($masked): $errMsg";
-   break;
-  }
- }
+			$errors[] = "Key #" . ($idx + 1) . " ($masked) on $model: $errMsg";
+		}
+	}
 
- return [
-  'ok' => false,
-  'error' => 'All Gemini API keys in pool (' . count($keys) . ') failed or exceeded daily quota.',
-  'details' => implode(' | ', $errors),
-  'keys_count' => count($keys)
- ];
+	return [
+		'ok' => false,
+		'error' => 'All Gemini API keys in pool (' . count($keys) . ') failed or exceeded daily quota.',
+		'details' => implode(' | ', $errors),
+		'keys_count' => count($keys)
+	];
 }
 function csrf(){if(!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??''))out(['error'=>'Invalid security token'],403);}
 $action=$_GET['action']??'';
