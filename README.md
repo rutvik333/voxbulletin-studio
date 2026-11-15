@@ -66,3 +66,4 @@ Open `http://127.0.0.1:8000` in your browser. Default password is `admin123`.
 
 ## 🔒 Security
 Real credentials, database files (`*.sqlite`), and generated storage images are excluded via `.gitignore` to ensure security. Never commit `config.php` to version control.
+

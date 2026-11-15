@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vox Bulletin Studio — Content Creator & Multi-Channel Publisher</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;0,900;1,800;1,900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030a14;
+      --card-bg: #071527;
+      --panel-border: #132b49;
+      --text: #e2e8f0;
+      --text-muted: #8ca3be;
+      --accent-yellow: #ffd12a;
+      --accent-blue: #00d2ff;
+      --accent-green: #00e676;
+      --accent-pink: #f472b6;
+      --primary: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #05101f;
+      border-bottom: 1px solid var(--panel-border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo-img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+    .brand-title span { color: var(--accent-yellow); }
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      color: var(--accent-blue);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { background: #334155; border-color: #475569; }
+    .btn.primary { background: #2563eb; border-color: #3b82f6; }
+    .btn.primary:hover { background: #1d4ed8; }
+    .btn.yellow { background: #ffd12a; border-color: #ffd12a; color: #000; font-weight: 700; }
+    .btn.yellow:hover { background: #e6bc25; }
+    .btn.small { padding: 5px 11px; font-size: 12px; }
+    
+    .main-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr 480px;
+      gap: 20px;
+      padding: 24px;
+      flex: 1;
+      max-width: 1720px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (max-width: 1280px) {
+      .main-layout { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 860px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+    
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel-header h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    
+    .stories-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 600px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .story-card {
+      background: #091c34;
+      border: 1px solid #142e50;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .story-card:hover {
+      border-color: var(--accent-blue);
+      background: #0e2747;
+    }
+    .story-card.selected {
+      border-color: var(--accent-yellow);
+      background: #142a47;
+      box-shadow: 0 0 12px rgba(255, 209, 42, 0.2);
+    }
+    .story-thumb {
+      width: 58px;
+      height: 58px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #041021;
+      flex-shrink: 0;
+    }
+    .story-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow: hidden;
+    }
+    .story-tag {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--accent-yellow);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .story-title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #fff;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    textarea, input[type="text"], input[type="password"] {
+      background: #040e1c;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.45;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus, input:focus { border-color: var(--accent-blue); }
+    textarea { resize: vertical; }
+    
+    .canvas-preview-wrap {
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #001226;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    .palette-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .color-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .copy-pill {
+      font-size: 11px;
+      background: #142a47;
+      color: var(--accent-blue);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .copy-pill:hover { background: #1c3b63; }
+    
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 10, 20, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-card {
+      background: #071527;
+      border: 1px solid #1a3962;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 520px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .hide { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-wrap">
+      <img src="brand-globe.png" alt="Vox Bulletin" class="brand-logo-img" onerror="this.src='instagram-automation/brand-globe.png'">
+      <div>
+        <div class="brand-title">VOX <span>BULLETIN</span></div>
+        <div class="brand-subtitle">CONTENT STUDIO • WEB EDITION</div>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <span class="badge">● LIVE WEB APP</span>
+      <button class="btn" onclick="shuffleTheme()">🎨 Shuffle Colors</button>
+      <button class="btn primary" onclick="downloadPoster()">↓ Download 1080×1350 PNG</button>
+      <button class="btn" onclick="openSettingsModal()">⚙ Settings</button>
+      <a href="https://github.com/rutvik333/voxbulletin-studio" target="_blank" rel="noopener" class="btn">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- PANEL 1: Stories Discovery -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2><span>📰</span> 01 / Discover Stories</h2>
+        <p>Curated entertainment headlines. Click any story to auto-apply to the canvas.</p>
+      </div>
+
+      <div class="field">
+        <label>SELECT A STORY</label>
+        <div id="storiesList" class="stories-list"></div>
+      </div>
+
+      <div class="field" style="margin-top:auto">
+        <button class="btn small" onclick="loadSampleStory()">↺ Reset Sample Stories</button>
+      </div>
+    </div>
+
+    <!-- PANEL 2: Content Drafting -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2><span>✍️</span> 02 / Generate Content</h2>
+        <p>Refine headline, copy, and platform captions. Optimized for maximum engagement.</p>
+      </div>
+
+      <div class="field">
+        <label>POST HEADLINE</label>
+        <textarea id="headlineInput" rows="3" placeholder="YOUR ENTERTAINMENT HEADLINE"></textarea>
+      </div>
+
+      <div class="field">
+        <label>SHORT STORY DESCRIPTION</label>
+        <textarea id="descInput" rows="3" placeholder="Concise story summary"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="field-label-row">
+          <label>INSTAGRAM / FACEBOOK CAPTION</label>
+          <button class="copy-pill" onclick="copyText('captionInput')">Copy</button>
+        </div>
+        <textarea id="captionInput" rows="4" placeholder="Full caption for Instagram & Facebook"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="field-label-row">
+          <label>X / TWITTER POST <span style="color:#94a3b8;font-size:10px">(STRICT 280 LIMIT)</span></label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="xCounter" style="font-size:11px;font-weight:700;color:var(--accent-blue)">0 / 280</span>
+            <button class="copy-pill" onclick="copyText('xInput')">Copy</button>
+          </div>
+        </div>
+        <textarea id="xInput" rows="3" maxlength="280" placeholder="Concise post for Twitter/X with #voxbulletin"></textarea>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn alt small" onclick="syncTwitterPost()" style="font-size:11px;padding:3px 8px">↻ Re-sync X Post</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn primary" onclick="generateWithGemini()" id="aiDraftBtn">✦ AI Draft with Gemini</button>
+        <button class="btn" onclick="render()">Refresh Canvas</button>
+      </div>
+    </div>
+
+    <!-- PANEL 3: Canvas Design & Export -->
+    <div class="panel">
+      <div class="panel-header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2><span>🎨</span> 03 / Graphic Studio</h2>
+          <span class="palette-pill" id="themePill">
+            <span class="color-dot" id="dotA" style="background:#ffd12a"></span>
+            <span class="color-dot" id="dotB" style="background:#00d2ff"></span>
+            <span id="themeName">Electric Yellow & Sky Blue</span>
+          </span>
+        </div>
+        <p>1080 × 1350 • Cinematic Navy • Highlight Duos • 3D Globe Logo</p>
+      </div>
+
+      <div class="canvas-preview-wrap">
+        <canvas id="posterCanvas" width="1080" height="1350"></canvas>
+      </div>
+
+      <div class="field">
+        <label>CUSTOM TOPIC IMAGE (OPTIONAL)</label>
+        <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp">
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn yellow" style="flex:1" onclick="downloadPoster()">↓ Download 1080×1350 PNG</button>
+        <button class="btn" onclick="shuffleTheme()">🎨 Shuffle Colors</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay hide">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="color:#fff;font-size:18px">⚙ Studio Settings</h3>
+        <button class="btn small" onclick="closeSettingsModal()">&times;</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted)">Your API keys are stored securely inside your browser's <code>localStorage</code> and never sent to external servers.</p>
+      
+      <div class="field">
+        <label>GOOGLE GEMINI API KEY</label>
+        <input type="password" id="geminiKeyInput" placeholder="AQ.Ab8... or AIzaSy...">
+        <p style="font-size:11px;color:var(--text-muted)">Get a free API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--accent-yellow)">Google AI Studio ↗</a></p>
+      </div>
+
+      <div class="field">
+        <label>OPTIONAL LOCAL / HOSTINGER BACKEND API URL</label>
+        <input type="text" id="backendUrlInput" placeholder="http://127.0.0.1:8000/api/index.php">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px">
+        <button class="btn" onclick="closeSettingsModal()">Cancel</button>
+        <button class="btn primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. Color Palettes
+    const PALETTES = [
+      { name: 'Electric Yellow & Sky Blue', colors: ['#ffd12a', '#00d2ff'] },
+      { name: 'Sunset Orange & Sky Blue', colors: ['#ff9100', '#00d2ff'] },
+      { name: 'Neon Green & Electric Yellow', colors: ['#00e676', '#ffd12a'] },
+      { name: 'Hot Pink & Sky Blue', colors: ['#f472b6', '#00d2ff'] },
+      { name: 'Electric Violet & Neon Green', colors: ['#c084fc', '#00e676'] },
+      { name: 'Aqua Cyan & Sunset Orange', colors: ['#22d3ee', '#ff9100'] },
+      { name: 'Lime Green & Hot Pink', colors: ['#a3e635', '#f472b6'] },
+      { name: 'Sky Blue & Sunset Orange', colors: ['#00d2ff', '#ff9100'] }
+    ];
+    let currentPalette = PALETTES[0];
+
+    // 2. Sample News Stories
+    const SAMPLE_STORIES = [
+      {
+        title: "Boruto TBV Finally Takes Down Hunter x Hunter in Official Japanese Ranking",
+        desc: "Boruto: Two Blue Vortex officially claims 15th place in Japan's manga sales rankings, surpassing veteran series in an explosive monthly milestone.",
+        image: "https://fwmedia.fandomwire.com/wp-content/uploads/2026/11/15113331/boruto-the-blue-vortex-overtakes-hunter-x-hunter.jpg"
+      },
+      {
+        title: "Star Trek: Michael Dorn's Worf Finally Makes Surprise Return This Month",
+        desc: "Michael Dorn's iconic Klingon warrior officially makes a surprise return this month as new Star Trek collectible releases celebrate his legacy.",
+        image: "https://fwmedia.fandomwire.com/wp-content/uploads/2026/11/15104845/michael-dorn-worf-star-trek.jpg"
+      },
+      {
+        title: "Forget Tom Holland, Marvel Officially Brings Back The OG Spider-Man 9 Days Before Doomsday",
+        desc: "Marvel is officially reuniting fans with the iconic 1994 animated Spider-Man in an all-new comic release penned by original showrunner John Semper Jr.",
+        image: "https://fwmedia.fandomwire.com/wp-content/uploads/2026/11/15083512/spider-man-94-annual.jpg"
+      },
+      {
+        title: "Train to Busan Director's Second New Thriller Sets Rotten Tomatoes Record",
+        desc: "Yeon Sang-ho's high-stakes sci-fi psychological thriller makes waves across film festival critics with record-breaking ratings.",
+        image: "https://fwmedia.fandomwire.com/wp-content/uploads/2026/11/15100523/yeon-sang-ho-thriller.jpg"
+      }
+    ];
+
+    let currentPhoto = null;
+    const brandGlobeImg = new Image();
+    brandGlobeImg.src = 'brand-globe.png';
+    brandGlobeImg.onerror = () => { brandGlobeImg.src = 'instagram-automation/brand-globe.png'; };
+    brandGlobeImg.onload = () => render();
+
+    function $(id) { return document.getElementById(id); }
+
+    function wrapLines(ctx, text, maxWidth, maxLines = 5) {
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      if (!words.length) return [];
+      const lines = [];
+      let cur = words[0];
+      for (let i = 1; i < words.length; i++) {
+        const test = cur + ' ' + words[i];
+        if (ctx.measureText(test).width <= maxWidth) {
+          cur = test;
+        } else {
+          lines.push(cur);
+          cur = words[i];
+          if (lines.length === maxLines - 1) {
+            const rest = words.slice(i).join(' ');
+            let last = rest;
+            while (last && ctx.measureText(last + '…').width > maxWidth) last = last.slice(0, -1);
+            lines.push(last === rest ? last : (last + '…'));
+            return lines;
+          }
+        }
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    }
+
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function render() {
+      const canvas = $('posterCanvas');
+      const ctx = canvas.getContext('2d');
+      const W = 1080, H = 1350;
+
+      // Base solid navy background
+      ctx.fillStyle = '#001226';
+      ctx.fillRect(0, 0, W, H);
+
+      // 1. Draw Hero Image
+      if (currentPhoto) {
+        const imgH = 880;
+        const scale = Math.max(W / currentPhoto.width, imgH / currentPhoto.height);
+        const sw = W / scale, sh = imgH / scale;
+        ctx.drawImage(currentPhoto, (currentPhoto.width - sw) / 2, 0, sw, sh, 0, 0, W, imgH);
+      } else {
+        const g = ctx.createLinearGradient(0, 0, W, 780);
+        g.addColorStop(0, '#18385b');
+        g.addColorStop(1, '#001226');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, 780);
+      }
+
+      // 2. Gradient fade into solid navy
+      const shade = ctx.createLinearGradient(0, 360, 0, 720);
+      shade.addColorStop(0.00, 'rgba(0,18,38,0)');
+      shade.addColorStop(0.25, 'rgba(0,18,38,0.18)');
+      shade.addColorStop(0.50, 'rgba(0,18,38,0.52)');
+      shade.addColorStop(0.75, 'rgba(0,18,38,0.85)');
+      shade.addColorStop(0.92, 'rgba(0,18,38,0.98)');
+      shade.addColorStop(1.00, '#001226');
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 360, W, 720 - 360 + 1);
+      ctx.fillStyle = '#001226';
+      ctx.fillRect(0, 720, W, H - 720);
+
+      // 3. Brand Logo (3D Globe + VoxBulletin)
+      ctx.save();
+      const logoSize = 44, gap = 12, logoText = 'VoxBulletin';
+      ctx.font = '800 28px "DM Sans", Arial, sans-serif';
+      const tw = ctx.measureText(logoText).width;
+      const totalLogoW = logoSize + gap + tw;
+      const topY = 48, startX = W - 55 - totalLogoW;
+
+      ctx.fillStyle = 'rgba(0, 18, 38, 0.75)';
+      drawRoundedRect(ctx, startX - 16, topY - 9, totalLogoW + 32, logoSize + 18, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      if (brandGlobeImg.complete && brandGlobeImg.naturalWidth > 0) {
+        ctx.drawImage(brandGlobeImg, startX, topY, logoSize, logoSize);
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 28px "DM Sans", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(logoText, startX + logoSize + gap, topY + logoSize / 2);
+      ctx.restore();
+
+      // 4. Headline sizing & lines
+      const hlText = ($('headlineInput').value || 'YOUR ENTERTAINMENT HEADLINE').toUpperCase().trim();
+      let hlFont = 68;
+      let lines = [];
+      do {
+        ctx.font = '900 ' + hlFont + 'px "Barlow Condensed", Impact, sans-serif';
+        lines = wrapLines(ctx, hlText, 960, 4);
+        hlFont -= 2;
+      } while (hlFont > 46 && lines.some(l => l.endsWith('…')));
+      const finalHlFont = hlFont + 2;
+      const hlLineH = Math.round(finalHlFont * 1.13);
+
+      // 5. Description sizing & lines
+      const descText = ($('descInput').value || 'Your concise story summary will appear here.').trim();
+      let descFont = descText.length > 250 ? 22 : 25;
+      ctx.font = '500 ' + descFont + 'px "DM Sans", Arial, sans-serif';
+      const dl = wrapLines(ctx, descText, 940, 4);
+      const descLineH = Math.round(descFont * 1.45);
+
+      // 6. Layout positioning
+      const gapVisual = 28;
+      const headlineBlockH = (lines.length - 1) * hlLineH + Math.round(finalHlFont * 0.85);
+      const descBlockH = dl.length ? ((dl.length - 1) * descLineH + Math.round(descFont * 0.85)) : 0;
+      const totalBlockH = headlineBlockH + (dl.length ? (gapVisual + descBlockH) : 0);
+
+      const darkTop = 735, footerY = 1292;
+      const availSpace = (footerY - 45) - darkTop;
+      const blockTop = darkTop + Math.max(15, (availSpace - totalBlockH) / 2);
+      let curY = Math.round(blockTop + finalHlFont * 0.76);
+
+      // 7. Render Headline with highlighted color duo
+      const [colorA, colorB] = currentPalette.colors;
+      ctx.textAlign = 'center';
+      ctx.font = '900 ' + finalHlFont + 'px "Barlow Condensed", Impact, sans-serif';
+      let lastHlBaseline = curY;
+      lines.forEach((line, i) => {
+        let color = '#ffffff';
+        if (lines.length === 1) color = colorA;
+        else if (lines.length === 2) color = (i === 0 ? colorA : colorB);
+        else if (lines.length === 3) color = (i === 0 ? colorA : (i === 2 ? colorB : '#ffffff'));
+        else color = (i === 0 ? colorA : (i === lines.length - 1 ? colorB : '#ffffff'));
+
+        ctx.fillStyle = color;
+        ctx.fillText(line, 540, curY);
+        lastHlBaseline = curY;
+        if (i < lines.length - 1) curY += hlLineH;
+      });
+
+      // 8. Render Description
+      if (dl.length) {
+        let descY = lastHlBaseline + Math.round(finalHlFont * 0.12) + gapVisual + Math.round(descFont * 0.72);
+        ctx.font = '500 ' + descFont + 'px "DM Sans", Arial, sans-serif';
+        ctx.fillStyle = '#a6b6ce';
+        dl.forEach(line => {
+          ctx.fillText(line, 540, descY);
+          descY += descLineH;
+        });
+      }
+
+      // 9. Brand Footer
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(270, footerY);
+      ctx.lineTo(430, footerY);
+      ctx.moveTo(650, footerY);
+      ctx.lineTo(810, footerY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 20px "DM Sans", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('VOX   BULLETIN', 540, footerY + 7);
+    }
+
+    function formatTwitter(hl, desc) {
+      const tag = '#voxbulletin';
+      const cleanHl = (hl || '').trim();
+      const cleanDesc = (desc || '').trim();
+      if (!cleanHl && !cleanDesc) return tag;
+      if (!cleanDesc) return cleanHl + '\n\n' + tag;
+      const candidate = cleanHl + '\n\n' + cleanDesc + '\n\n' + tag;
+      if (candidate.length <= 280) return candidate;
+
+      const avail = 280 - cleanHl.length - 2 - 5 - tag.length;
+      if (avail >= 25) {
+        let trimmed = cleanDesc.slice(0, avail);
+        const lastSpace = trimmed.lastIndexOf(' ');
+        if (lastSpace > 15) trimmed = trimmed.slice(0, lastSpace);
+        return cleanHl + '\n\n' + trimmed + '...\n\n' + tag;
+      }
+      return cleanHl.slice(0, 280 - tag.length - 5) + '...\n\n' + tag;
+    }
+
+    function updateXCounter() {
+      const len = $('xInput').value.length;
+      $('xCounter').textContent = len + ' / 280';
+      $('xCounter').style.color = len > 280 ? '#ef4444' : (len >= 260 ? '#facc15' : 'var(--accent-blue)');
+    }
+
+    function syncTwitterPost() {
+      $('xInput').value = formatTwitter($('headlineInput').value, $('descInput').value);
+      updateXCounter();
+    }
+
+    function selectStory(story, cardEl) {
+      document.querySelectorAll('.story-card').forEach(c => c.classList.remove('selected'));
+      if (cardEl) cardEl.classList.add('selected');
+
+      $('headlineInput').value = story.title.toUpperCase();
+      $('descInput').value = story.desc;
+      $('captionInput').value = story.title + '\n\n' + story.desc + '\n\n#voxbulletin #EntertainmentNews';
+      $('xInput').value = formatTwitter(story.title, story.desc);
+      updateXCounter();
+
+      if (story.image) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { currentPhoto = img; render(); };
+        img.src = story.image;
+      }
+      render();
+    }
+
+    function loadSampleStory() {
+      const list = $('storiesList');
+      list.replaceChildren();
+      SAMPLE_STORIES.forEach((s, idx) => {
+        const card = document.createElement('div');
+        card.className = 'story-card' + (idx === 0 ? ' selected' : '');
+        card.onclick = () => selectStory(s, card);
+
+        const img = document.createElement('img');
+        img.className = 'story-thumb';
+        img.src = s.image;
+
+        const meta = document.createElement('div');
+        meta.className = 'story-meta';
+        const tag = document.createElement('div');
+        tag.className = 'story-tag';
+        tag.textContent = 'ARTICLE 0' + (idx + 1);
+        const title = document.createElement('div');
+        title.className = 'story-title';
+        title.textContent = s.title;
+
+        meta.append(tag, title);
+        card.append(img, meta);
+        list.append(card);
+      });
+      selectStory(SAMPLE_STORIES[0], list.children[0]);
+    }
+
+    function shuffleTheme() {
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * PALETTES.length);
+      } while (PALETTES[idx].name === currentPalette.name);
+      currentPalette = PALETTES[idx];
+      $('dotA').style.background = currentPalette.colors[0];
+      $('dotB').style.background = currentPalette.colors[1];
+      $('themeName').textContent = currentPalette.name;
+      render();
+    }
+
+    function downloadPoster() {
+      render();
+      const a = document.createElement('a');
+      a.href = $('posterCanvas').toDataURL('image/png');
+      a.download = 'vox-bulletin-' + Date.now() + '.png';
+      a.click();
+    }
+
+    function copyText(id) {
+      const el = $(id);
+      if (!el) return;
+      navigator.clipboard.writeText(el.value).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+
+    $('imageFileInput').onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { currentPhoto = img; URL.revokeObjectURL(url); render(); };
+      img.src = url;
+    };
+
+    ['headlineInput', 'descInput'].forEach(id => {
+      $(id).addEventListener('input', () => {
+        render();
+        updateXCounter();
+      });
+    });
+    $('xInput').addEventListener('input', updateXCounter);
+
+    // Settings Modal
+    function openSettingsModal() {
+      $('geminiKeyInput').value = localStorage.getItem('vox_gemini_key') || '';
+      $('backendUrlInput').value = localStorage.getItem('vox_backend_url') || 'http://127.0.0.1:8000/api/index.php';
+      $('settingsModal').classList.remove('hide');
+    }
+    function closeSettingsModal() { $('settingsModal').classList.add('hide'); }
+    function saveSettings() {
+      localStorage.setItem('vox_gemini_key', $('geminiKeyInput').value.trim());
+      localStorage.setItem('vox_backend_url', $('backendUrlInput').value.trim());
+      closeSettingsModal();
+      alert('Settings saved!');
+    }
+
+    async function generateWithGemini() {
+      const key = localStorage.getItem('vox_gemini_key');
+      if (!key) {
+        alert('Please enter your free Gemini API key in Settings first.');
+        openSettingsModal();
+        return;
+      }
+      const btn = $('aiDraftBtn');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+
+      try {
+        const headline = $('headlineInput').value;
+        const prompt = `You are a social editor for VoxBulletin. Write an entertainment news post for: "${headline}". Respond ONLY in valid JSON matching: {"headline": "...", "description": "...", "caption": "..."}`;
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        const text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const draft = JSON.parse(jsonMatch[0]);
+          $('headlineInput').value = draft.headline.toUpperCase();
+          $('descInput').value = draft.description;
+          $('captionInput').value = draft.caption;
+          syncTwitterPost();
+          render();
+        }
+      } catch (err) {
+        alert('Gemini draft error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✦ AI Draft with Gemini';
+      }
+    }
+
+    // Init
+    document.fonts.ready.then(() => {
+      loadSampleStory();
+      render();
+    });
+  </script>
+</body>
+</html>
