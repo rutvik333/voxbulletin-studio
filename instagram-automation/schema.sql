@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS posts (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ source_url VARCHAR(1500) NOT NULL,
+ source_title TEXT NOT NULL,
+ headline VARCHAR(500) NOT NULL,
+ description TEXT NOT NULL,
+ caption TEXT NOT NULL,
+ image_file VARCHAR(255) DEFAULT NULL,
+ source_image_url TEXT,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX (created_at)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

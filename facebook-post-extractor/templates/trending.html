@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vox Bulletin — Entertainment Post Generator</title>
+  <!-- Load fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #e9eefb;
+      background: #090e19;
+      font-size: 14px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #a2a4ff; text-decoration: none; }
+    header {
+      padding: 16px 35px;
+      border-bottom: 1px solid #243049;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0d1423;
+    }
+    .brand-title {
+      font-size: 19px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      background: #00e676;
+      color: #04101e;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .nav-links { display: flex; gap: 18px; align-items: center; }
+    .nav-links a { font-weight: 600; color: #9bb0cf; transition: color .15s; }
+    .nav-links a:hover { color: #fff; }
+    .nav-links a.active { color: #fff; border-bottom: 2px solid #00e676; padding-bottom: 4px; }
+
+    .btn-settings-header {
+      background: #19253d;
+      border: 1px solid #334466;
+      color: #c7d5ef;
+      border-radius: 9px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s ease;
+    }
+    .btn-settings-header:hover {
+      background: #233454;
+      border-color: #00e676;
+      color: #fff;
+    }
+    
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 360px minmax(360px, 460px) minmax(320px, 1fr);
+      gap: 24px;
+    }
+    .panel {
+      background: #111b2c;
+      border: 1px solid #29354c;
+      border-radius: 16px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel p.sub {
+      color: #8b9bb4;
+      font-size: 12px;
+      margin: 0 0 16px;
+      line-height: 1.5;
+    }
+    
+    .trend-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      max-height: 720px;
+      padding-right: 4px;
+    }
+    .trend-card {
+      background: #0b1424;
+      border: 1px solid #28374f;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all .15s ease;
+      display: flex;
+      gap: 12px;
+    }
+    .trend-card:hover, .trend-card.selected {
+      border-color: #00e676;
+      background: #15223a;
+    }
+    .trend-card img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background: #1c2a42;
+    }
+    .trend-info { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+    .trend-src { font-size: 10px; font-weight: 700; color: #00e676; text-transform: uppercase; margin-bottom: 3px; }
+    .trend-title { font-size: 12px; font-weight: 600; line-height: 1.35; color: #e4ecfa; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9cb0ce;
+      font-weight: 700;
+      margin: 14px 0 6px;
+    }
+    input, textarea, select {
+      width: 100%;
+      background: #0a1220;
+      border: 1px solid #334360;
+      color: #fff;
+      border-radius: 9px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #00e676;
+      outline: none;
+    }
+    textarea { resize: vertical; min-height: 80px; font-size: 13px; line-height: 1.4; }
+    
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn.primary { background: #00e676; color: #04101e; }
+    .btn.primary:hover { background: #26ff8f; }
+    .btn.secondary { background: #1c2a40; border: 1px solid #32435e; color: #d3deef; }
+    .btn.secondary:hover { background: #263854; }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+
+    .preview-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      width: 100%;
+      max-width: 440px;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+      border: 1px solid #233149;
+    }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 9px;
+      font-size: 12px;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    .alert.info { background: #142844; border: 1px solid #264a7c; color: #a6cbf8; }
+    .alert.warning { background: #382215; border: 1px solid #784920; color: #ffd699; }
+    .alert.danger { background: #38151f; border: 1px solid #782036; color: #ffb4c2; }
+    .alert a { color: #5eead4; text-decoration: underline; font-weight: 700; }
+
+    /* Modal styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 8, 16, 0.78);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: #111b2c;
+      border: 1px solid #2d3e5e;
+      border-radius: 18px;
+      width: 90%;
+      max-width: 540px;
+      padding: 26px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+      position: relative;
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .modal-head h3 {
+      margin: 0;
+      font-size: 19px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .close-btn {
+      background: transparent;
+      border: 0;
+      color: #9cb0ce;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
+    .close-btn:hover { color: #fff; }
+
+    /* Tab switcher */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #25334d;
+      margin-top: 15px;
+      gap: 12px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: #8fa0be;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn.active {
+      color: #fff;
+      border-color: #00e676;
+    }
+    .tab-content { display: none; padding-top: 14px; }
+    .tab-content.active { display: block; }
+
+    .key-input-wrap {
+      position: relative;
+      margin-top: 6px;
+    }
+    .key-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 0;
+      color: #93a4c0;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .key-status {
+      font-size: 12px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .pill-free {
+      background: #0f3e24;
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      .trend-list { max-height: 280px; }
+      header { flex-direction: column; gap: 14px; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-title">
+      <span style="font-size: 22px;color:#00e676">✦</span> Vox Bulletin <span class="badge">POST GENERATOR</span>
+    </div>
+    <div class="header-right">
+      <div class="nav-links">
+        <a href="/" class="active">Post Generator</a>
+        <a href="/studio">Brand Studio</a>
+        <a href="/facebook">Facebook Extractor</a>
+      </div>
+      <button id="openSettingsBtn" class="btn-settings-header">⚙ AI Settings</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- COLUMN 1: LIVE ENTERTAINMENT TRENDS -->
+    <section class="panel">
+      <h2>
+        Trending Entertainment
+        <button id="refreshFeedBtn" class="btn secondary" style="width:auto;padding:5px 10px;font-size:11px">↻ Refresh</button>
+      </h2>
+      <p class="sub">Live breaking movie & celebrity news with high-resolution hero images.</p>
+      
+      <div class="trend-list" id="trendList">
+        <div style="color:#71829d;text-align:center;padding:30px">Loading live entertainment feeds…</div>
+      </div>
+
+      <div style="margin-top: 15px">
+        <button id="aiBtn" class="btn primary">⚡ Generate with AI (Gemini / ChatGPT)</button>
+      </div>
+      <div id="apiAlert" class="alert warning" style="display:none"></div>
+    </section>
+
+    <!-- COLUMN 2: POST EDITOR -->
+    <section class="panel">
+      <h2>Post Customizer</h2>
+      <p class="sub">Wrap keywords in <b style="color:#00e676">*asterisks*</b> for vibrant color highlights.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label for="colorTheme">Highlight Color</label>
+          <select id="colorTheme">
+            <option value="multicolor">🎨 Multi-Color (Green/Yellow/Blue)</option>
+            <option value="green">🟢 Neon Mint Green</option>
+            <option value="blue">🔵 Cyber Cyan / Blue</option>
+            <option value="yellow">🟡 Electric Yellow</option>
+            <option value="orange">🟠 Vibrant Orange</option>
+            <option value="pink">🔴 Hot Coral / Pink</option>
+          </select>
+        </div>
+        <div>
+          <label for="brand">Bottom Brand Footer</label>
+          <input id="brand" value="VOX BULLETIN">
+        </div>
+      </div>
+
+      <label for="headline">Headline (Use *word* for Color Highlights)</label>
+      <textarea id="headline">*DANNY BOYLE* TALKS INK, THE COMMON ARCHITECTURE OF HIS MOVIES AND MORE *28 YEARS LATER* AS HE RECEIVES THE *DEADLINE LEGEND AWARD*</textarea>
+
+      <label for="desc">Description (Centered Summary)</label>
+      <textarea id="desc">DANNY BOYLE SAYS HE USED TO BELIEVE THAT HE NEVER MADE THE SAME FILM TWICE, THUS A FILMOGRAPHY THAT INCLUDES HIT MOVIES ACROSS GENRES LIKE TRAINSPOTTING, 28 DAYS LATER AND SLUMDOG MILLIONAIRE.</textarea>
+
+      <label>Background Image</label>
+      <input type="file" id="fileInput" accept="image/*" style="margin-bottom:8px">
+      <input id="imgUrlInput" placeholder="Or paste image URL...">
+
+      <div class="btn-row">
+        <button id="applyUrlBtn" class="btn secondary">Load Image URL</button>
+        <button id="sampleDannyBtn" class="btn secondary">Danny Boyle Sample</button>
+      </div>
+
+      <div style="margin-top:22px">
+        <button id="downloadBtn" class="btn primary" style="font-size:15px;padding:14px">
+          ↓ Download High-Res Post (1080×1350)
+        </button>
+      </div>
+    </section>
+
+    <!-- COLUMN 3: LIVE PREVIEW -->
+    <section class="panel preview-box">
+      <h2>Live Preview</h2>
+      <p class="sub" style="text-align:center">1080 × 1350 (4:5) Instagram Portrait</p>
+      <canvas id="canvas" width="1080" height="1350"></canvas>
+    </section>
+  </main>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>⚙ AI Engine Settings</h3>
+        <button class="close-btn" id="closeSettingsBtn">×</button>
+      </div>
+
+      <!-- Provider Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" id="tabGeminiBtn">
+          Google Gemini <span class="pill-free">FREE</span>
+        </button>
+        <button class="tab-btn" id="tabOpenaiBtn">
+          OpenAI ChatGPT
+        </button>
+      </div>
+
+      <!-- GEMINI TAB CONTENT -->
+      <div class="tab-content active" id="tabGemini">
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-top:0">
+          Google Gemini offers a <b>100% Free Tier</b> (15 RPM) with no credit card required.
+        </p>
+
+        <label for="geminiKeyInput">Gemini API Key</label>
+        <div class="key-input-wrap">
+          <input id="geminiKeyInput" type="password" placeholder="AIzaSy..." autocomplete="off">
+          <button type="button" class="key-toggle" id="toggleGeminiKey">SHOW</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px">
+          <span style="color:#859bb8">Status: <b id="geminiStatusText" style="color:#e2e8f0">Loading…</b></span>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color:#5eead4;font-weight:700">
+            Get Free Gemini Key (Google AI Studio) ↗
+          </a>
+        </div>
+
+        <div id="geminiMsg" class="key-status"></div>
+
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:20px">
+          <button id="saveGeminiBtn" class="btn primary">✓ Test & Save Gemini Key</button>
+          <button id="forceSaveGeminiBtn" class="btn secondary" style="display:none">Save Anyway</button>
+        </div>
+      </div>
+
+      <!-- OPENAI TAB CONTENT -->
+      <div class="tab-content" id="tabOpenai">
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-top:0">
+          Requires a prepaid credit balance at platform.openai.com ($5 minimum).
+        </p>
+
+        <label for="openaiKeyInput">OpenAI API Key</label>
+        <div class="key-input-wrap">
+          <input id="openaiKeyInput" type="password" placeholder="sk-proj-..." autocomplete="off">
+          <button type="button" class="key-toggle" id="toggleOpenaiKey">SHOW</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px">
+          <span style="color:#859bb8">Status: <b id="openaiStatusText" style="color:#e2e8f0">Loading…</b></span>
+          <a href="https://platform.openai.com/settings/organization/billing" target="_blank" rel="noopener noreferrer" style="color:#ffd699">
+            Add OpenAI Credits ($5) ↗
+          </a>
+        </div>
+
+        <div id="openaiMsg" class="key-status"></div>
+
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:20px">
+          <button id="saveOpenaiBtn" class="btn primary">✓ Test & Save OpenAI Key</button>
+          <button id="forceSaveOpenaiBtn" class="btn secondary" style="display:none">Save Anyway</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let currentImage = null;
+
+    const samplePhoto = new Image();
+    samplePhoto.src = '/static/danny_boyle_bg.png';
+    samplePhoto.onload = () => {
+      currentImage = samplePhoto;
+      render();
+    };
+
+    const PALETTE = ['#00e676', '#ffd600', '#00d2ff', '#ff9100', '#ff3366'];
+    const COLOR_MAP = {
+      green: '#00e676',
+      blue: '#00d2ff',
+      yellow: '#ffd600',
+      orange: '#ff9100',
+      pink: '#ff3366'
+    };
+
+    // --- TABS & SETTINGS MODAL ---
+    const settingsModal = document.getElementById('settingsModal');
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+
+    const tabGeminiBtn = document.getElementById('tabGeminiBtn');
+    const tabOpenaiBtn = document.getElementById('tabOpenaiBtn');
+    const tabGemini = document.getElementById('tabGemini');
+    const tabOpenai = document.getElementById('tabOpenai');
+
+    tabGeminiBtn.onclick = () => {
+      tabGeminiBtn.classList.add('active');
+      tabOpenaiBtn.classList.remove('active');
+      tabGemini.classList.add('active');
+      tabOpenai.classList.remove('active');
+    };
+
+    tabOpenaiBtn.onclick = () => {
+      tabOpenaiBtn.classList.add('active');
+      tabGeminiBtn.classList.remove('active');
+      tabOpenai.classList.add('active');
+      tabGemini.classList.remove('active');
+    };
+
+    openSettingsBtn.onclick = () => {
+      settingsModal.classList.add('show');
+      loadAISettings();
+    };
+
+    closeSettingsBtn.onclick = () => settingsModal.classList.remove('show');
+    settingsModal.onclick = e => {
+      if (e.target === settingsModal) settingsModal.classList.remove('show');
+    };
+
+    // Key visibility toggles
+    document.getElementById('toggleGeminiKey').onclick = () => {
+      const inp = document.getElementById('geminiKeyInput');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      document.getElementById('toggleGeminiKey').textContent = inp.type === 'password' ? 'SHOW' : 'HIDE';
+    };
+
+    document.getElementById('toggleOpenaiKey').onclick = () => {
+      const inp = document.getElementById('openaiKeyInput');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      document.getElementById('toggleOpenaiKey').textContent = inp.type === 'password' ? 'SHOW' : 'HIDE';
+    };
+
+    async function loadAISettings() {
+      try {
+        const r = await fetch('/api/settings/ai');
+        const d = await r.json();
+        document.getElementById('geminiStatusText').textContent = d.gemini_has_key ? `Active (${d.gemini_masked})` : 'Not configured';
+        document.getElementById('openaiStatusText').textContent = d.openai_has_key ? `Configured (${d.openai_masked})` : 'Not configured';
+        if (d.active_provider === 'openai') {
+          tabOpenaiBtn.click();
+        } else {
+          tabGeminiBtn.click();
+        }
+      } catch (e) {
+        document.getElementById('geminiStatusText').textContent = 'Error';
+      }
+    }
+    loadAISettings();
+
+    // Save Gemini Key
+    async function saveGemini(force = false) {
+      const keyVal = document.getElementById('geminiKeyInput').value.trim();
+      const msgBox = document.getElementById('geminiMsg');
+      const saveBtn = document.getElementById('saveGeminiBtn');
+      const forceBtn = document.getElementById('forceSaveGeminiBtn');
+
+      if (!keyVal && !force) {
+        msgBox.style.display = 'block';
+        msgBox.className = 'key-status alert warning';
+        msgBox.textContent = 'Please enter your Gemini API key.';
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Verifying with Google…';
+      msgBox.style.display = 'none';
+      forceBtn.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/settings/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: keyVal, force_save: force })
+        });
+        const data = await res.json();
+        msgBox.style.display = 'block';
+        if (data.success) {
+          msgBox.className = 'key-status alert info';
+          msgBox.textContent = data.message || 'Gemini API Key saved and active!';
+          document.getElementById('geminiKeyInput').value = '';
+          loadAISettings();
+        } else {
+          msgBox.className = 'key-status alert danger';
+          msgBox.textContent = data.error || 'Gemini validation failed.';
+          forceBtn.style.display = 'inline-flex';
+        }
+      } catch (err) {
+        msgBox.style.display = 'block';
+        msgBox.className = 'key-status alert danger';
+        msgBox.textContent = 'Error: ' + err.message;
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '✓ Test & Save Gemini Key';
+      }
+    }
+
+    document.getElementById('saveGeminiBtn').onclick = () => saveGemini(false);
+    document.getElementById('forceSaveGeminiBtn').onclick = () => saveGemini(true);
+
+    // Save OpenAI Key
+    async function saveOpenai(force = false) {
+      const keyVal = document.getElementById('openaiKeyInput').value.trim();
+      const msgBox = document.getElementById('openaiMsg');
+      const saveBtn = document.getElementById('saveOpenaiBtn');
+      const forceBtn = document.getElementById('forceSaveOpenaiBtn');
+
+      if (!keyVal && !force) {
+        msgBox.style.display = 'block';
+        msgBox.className = 'key-status alert warning';
+        msgBox.textContent = 'Please enter an OpenAI API key.';
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Verifying with OpenAI…';
+      msgBox.style.display = 'none';
+      forceBtn.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/settings/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: keyVal, force_save: force })
+        });
+        const data = await res.json();
+        msgBox.style.display = 'block';
+        if (data.success) {
+          msgBox.className = 'key-status alert info';
+          msgBox.textContent = data.message || 'Key saved successfully!';
+          document.getElementById('openaiKeyInput').value = '';
+          loadAISettings();
+        } else {
+          msgBox.className = 'key-status alert danger';
+          msgBox.textContent = data.error || 'OpenAI validation failed.';
+          forceBtn.style.display = 'inline-flex';
+        }
+      } catch (err) {
+        msgBox.style.display = 'block';
+        msgBox.className = 'key-status alert danger';
+        msgBox.textContent = 'Error: ' + err.message;
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '✓ Test & Save OpenAI Key';
+      }
+    }
+
+    document.getElementById('saveOpenaiBtn').onclick = () => saveOpenai(false);
+    document.getElementById('forceSaveOpenaiBtn').onclick = () => saveOpenai(true);
+
+    // --- TEXT RENDERING LOGIC ---
+    function parseTokens(text, theme) {
+      text = (text || '').trim().toUpperCase();
+      
+      if (!text.includes('*')) {
+        const words = text.split(/\s+/).filter(Boolean);
+        if (words.length <= 4) {
+          text = `*${text}*`;
+        } else if (words.length >= 8) {
+          text = `*${words.slice(0, 2).join(' ')}* ${words.slice(2, -3).join(' ')} *${words.slice(-3).join(' ')}*`;
+        } else {
+          text = `*${words.slice(0, 2).join(' ')}* *${words.slice(2).join(' ')}*`;
+        }
+      }
+
+      const tokens = [];
+      const parts = text.split('*');
+      let cIdx = 0;
+
+      for (let i = 0; i < parts.length; i++) {
+        const isHl = (i % 2 === 1);
+        const words = parts[i].split(/\s+/).filter(Boolean);
+        let color = '#ffffff';
+        if (isHl) {
+          if (theme && COLOR_MAP[theme]) {
+            color = COLOR_MAP[theme];
+          } else {
+            color = PALETTE[cIdx % PALETTE.length];
+            cIdx++;
+          }
+        }
+        for (const w of words) tokens.push({ word: w, color, isHl });
+      }
+      return tokens;
+    }
+
+    function render() {
+      const w = 1080;
+      const h = 1350;
+      canvas.width = w;
+      canvas.height = h;
+
+      // 1. Deep oceanic navy / charcoal background (#001226)
+      ctx.fillStyle = '#001226';
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Background image covering upper ~58%
+      if (currentImage && currentImage.complete && currentImage.naturalWidth) {
+        const targetH = h * 0.58;
+        const scale = Math.max(w / currentImage.naturalWidth, targetH / currentImage.naturalHeight);
+        const nw = currentImage.naturalWidth * scale;
+        const nh = currentImage.naturalHeight * scale;
+        const x = (w - nw) / 2;
+        ctx.drawImage(currentImage, x, 0, nw, nh);
+      }
+
+      // 3. Smooth gradient fade starting around 34% down to 54%
+      const gradStart = h * 0.34;
+      const gradEnd = h * 0.54;
+      const grad = ctx.createLinearGradient(0, gradStart, 0, gradEnd);
+      grad.addColorStop(0, 'rgba(0, 18, 38, 0)');
+      grad.addColorStop(0.5, 'rgba(0, 18, 38, 0.75)');
+      grad.addColorStop(1, 'rgba(0, 18, 38, 1)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, gradStart, w, gradEnd - gradStart);
+      ctx.fillStyle = '#001226';
+      ctx.fillRect(0, gradEnd, w, h - gradEnd);
+
+      // 4. Dynamic Headline Sizing based on word count
+      const headlineText = document.getElementById('headline').value;
+      const theme = document.getElementById('colorTheme').value;
+      const cleanHl = headlineText.replace(/\*/g, '').trim();
+      const wordsCount = cleanHl.split(/\s+/).filter(Boolean).length;
+
+      let hlSize = 60;
+      let descSize = 20;
+      let gap = 24;
+
+      if (wordsCount <= 8) {
+        hlSize = 76;
+        descSize = 24;
+        gap = 36;
+      } else if (wordsCount <= 14) {
+        hlSize = 68;
+        descSize = 22;
+        gap = 30;
+      }
+
+      const tokens = parseTokens(headlineText, theme);
+      ctx.font = `800 ${hlSize}px "Barlow Condensed", "Arial Nova Cond", Impact, sans-serif`;
+
+      const maxLineW = w - 120;
+      const spaceW = ctx.measureText(' ').width;
+
+      const lines = [];
+      let curLine = [];
+      let curW = 0;
+
+      for (const t of tokens) {
+        const wLen = ctx.measureText(t.word).width;
+        const testW = curW + (curLine.length ? spaceW : 0) + wLen;
+        if (testW > maxLineW && curLine.length) {
+          lines.push(curLine);
+          curLine = [{ ...t, wLen }];
+          curW = wLen;
+        } else {
+          curLine.push({ ...t, wLen });
+          curW = testW;
+        }
+      }
+      if (curLine.length) lines.push(curLine);
+
+      const lineH = hlSize * 1.15;
+      const totalHlH = lines.length * lineH;
+
+      // 5. Wrap Description
+      const descText = (document.getElementById('desc').value || '').trim().toUpperCase();
+      ctx.font = `700 ${descSize}px "Inter", "Segoe UI", Arial, sans-serif`;
+
+      const dLines = [];
+      if (descText) {
+        const dWords = descText.split(/\s+/).filter(Boolean);
+        let curD = '';
+        for (const wd of dWords) {
+          const test = curD ? curD + ' ' + wd : wd;
+          if (ctx.measureText(test).width > (w - 160)) {
+            if (curD) dLines.push(curD);
+            curD = wd;
+          } else {
+            curD = test;
+          }
+        }
+        if (curD) dLines.push(curD);
+      }
+
+      const descLineH = descSize * 1.5;
+      const totalDescH = dLines.slice(0, 5).length * descLineH;
+      const totalContentH = totalHlH + (descText ? gap : 0) + totalDescH;
+
+      // 6. Perfect Vertical Centering to Eliminate Empty Spacing
+      const availTop = h * 0.47;
+      const availBottom = h - 90;
+      const availSpace = availBottom - availTop;
+      const startY = availTop + Math.max(10, (availSpace - totalContentH) / 2);
+
+      // Render Headline
+      let yHl = startY;
+      ctx.textAlign = 'left';
+      ctx.font = `800 ${hlSize}px "Barlow Condensed", "Arial Nova Cond", Impact, sans-serif`;
+
+      for (const lineTokens of lines) {
+        const totalW = lineTokens.reduce((acc, t) => acc + t.wLen, 0) + spaceW * (lineTokens.length - 1);
+        let curX = (w - totalW) / 2;
+        for (const t of lineTokens) {
+          ctx.fillStyle = t.color;
+          ctx.fillText(t.word, curX, yHl + hlSize * 0.85);
+          curX += t.wLen + spaceW;
+        }
+        yHl += lineH;
+      }
+
+      // Render Description
+      if (descText) {
+        ctx.font = `700 ${descSize}px "Inter", "Segoe UI", Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#9ca3af';
+        let yDesc = yHl + gap;
+        for (const dLine of dLines.slice(0, 5)) {
+          ctx.fillText(dLine, w / 2, yDesc);
+          yDesc += descLineH;
+        }
+      }
+
+      // 7. Bottom Center Brand Footer: ————— VOX BULLETIN —————
+      const brandText = (document.getElementById('brand').value || 'VOX BULLETIN').toUpperCase();
+      const brandSpaced = brandText.split('').join(' ');
+      const footerY = h - 65;
+
+      ctx.font = 'bold 20px "Segoe UI", "Inter", Arial, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+      ctx.textAlign = 'center';
+      ctx.fillText(brandSpaced, w / 2, footerY);
+
+      const bWidth = ctx.measureText(brandSpaced).width;
+      const lineLen = 160;
+      const gapLine = 26;
+      const cy = footerY - 6;
+
+      // Left Divider with Gradient Fade
+      const leftGrad = ctx.createLinearGradient(w / 2 - bWidth / 2 - gapLine - lineLen, 0, w / 2 - bWidth / 2 - gapLine, 0);
+      leftGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      leftGrad.addColorStop(1, 'rgba(255, 255, 255, 0.9)');
+      ctx.strokeStyle = leftGrad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - bWidth / 2 - gapLine - lineLen, cy);
+      ctx.lineTo(w / 2 - bWidth / 2 - gapLine, cy);
+      ctx.stroke();
+
+      // Right Divider with Gradient Fade
+      const rightGrad = ctx.createLinearGradient(w / 2 + bWidth / 2 + gapLine, 0, w / 2 + bWidth / 2 + gapLine + lineLen, 0);
+      rightGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+      rightGrad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+      ctx.strokeStyle = rightGrad;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 + bWidth / 2 + gapLine, cy);
+      ctx.lineTo(w / 2 + bWidth / 2 + gapLine + lineLen, cy);
+      ctx.stroke();
+    }
+
+    // Input listeners
+    ['brand', 'headline', 'desc', 'colorTheme'].forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+      document.getElementById(id).addEventListener('change', render);
+    });
+
+    // File input
+    document.getElementById('fileInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => { currentImage = img; render(); };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // URL input
+    document.getElementById('applyUrlBtn').addEventListener('click', () => {
+      const url = document.getElementById('imgUrlInput').value.trim();
+      if (!url) return;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { currentImage = img; render(); };
+      img.onerror = () => alert('Could not load image directly due to CORS. You can download and upload the file instead.');
+      img.src = url;
+    });
+
+    document.getElementById('sampleDannyBtn').addEventListener('click', () => {
+      currentImage = samplePhoto;
+      document.getElementById('colorTheme').value = 'multicolor';
+      document.getElementById('brand').value = 'VOX BULLETIN';
+      document.getElementById('headline').value = '*DANNY BOYLE* TALKS INK, THE COMMON ARCHITECTURE OF HIS MOVIES AND MORE *28 YEARS LATER* AS HE RECEIVES THE *DEADLINE LEGEND AWARD*';
+      document.getElementById('desc').value = 'DANNY BOYLE SAYS HE USED TO BELIEVE THAT HE NEVER MADE THE SAME FILM TWICE, THUS A FILMOGRAPHY THAT INCLUDES HIT MOVIES ACROSS GENRES LIKE TRAINSPOTTING, 28 DAYS LATER AND SLUMDOG MILLIONAIRE.';
+      render();
+    });
+
+    // Load trending feeds
+    async function loadTrending() {
+      const list = document.getElementById('trendList');
+      list.innerHTML = '<div style="color:#71829d;text-align:center;padding:20px">Fetching live entertainment stories…</div>';
+      try {
+        const r = await fetch('/api/trending');
+        const data = await r.json();
+        list.innerHTML = '';
+        data.stories.forEach(s => {
+          const card = document.createElement('div');
+          card.className = 'trend-card';
+          card.innerHTML = `
+            <img src="${s.image_url}" alt="Hero" onerror="this.src='/static/danny_boyle_bg.png'">
+            <div class="trend-info">
+              <span class="trend-src">${s.source}</span>
+              <span class="trend-title">${s.raw_title}</span>
+            </div>
+          `;
+          card.onclick = () => {
+            document.querySelectorAll('.trend-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            document.getElementById('headline').value = s.headline;
+            document.getElementById('desc').value = s.description;
+            if (s.image_url) {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => { currentImage = img; render(); };
+              img.src = s.image_url;
+            }
+            render();
+          };
+          list.appendChild(card);
+        });
+      } catch (err) {
+        list.innerHTML = '<div style="color:#ff8080;padding:20px">Failed to load trending feeds.</div>';
+      }
+    }
+
+    document.getElementById('refreshFeedBtn').addEventListener('click', loadTrending);
+    loadTrending();
+
+    // AI Generate button (Gemini or ChatGPT)
+    document.getElementById('aiBtn').addEventListener('click', async () => {
+      const alertBox = document.getElementById('apiAlert');
+      alertBox.style.display = 'block';
+      alertBox.className = 'alert info';
+      alertBox.textContent = 'Contacting AI Engine…';
+      try {
+        const r = await fetch('/api/ai-topic', { method: 'POST' });
+        const res = await r.json();
+        if (!r.ok || res.error) {
+          alertBox.className = 'alert warning';
+          const errMsg = res.error || 'AI request failed.';
+          if (errMsg.includes('429') || errMsg.toLowerCase().includes('credits')) {
+            alertBox.innerHTML = `⚠️ <b>OpenAI Out of Credits (Error 429)</b><br>Switch to <b>Google Gemini (100% Free)</b> in settings!<br><button onclick="document.getElementById('openSettingsBtn').click()" style="background:#00e676;border:0;color:#04101e;font-weight:700;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;margin-top:6px">⚙ Switch to Free Gemini</button>`;
+          } else {
+            alertBox.innerHTML = `⚠️ ${errMsg}<br><button onclick="document.getElementById('openSettingsBtn').click()" style="background:#1f2e4a;border:1px solid #44608c;color:#fff;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;margin-top:6px">⚙ Open AI Settings</button>`;
+          }
+        } else {
+          alertBox.className = 'alert info';
+          alertBox.textContent = `Topic generated via ${res.provider || 'AI'}!`;
+          document.getElementById('headline').value = res.headline;
+          document.getElementById('desc').value = res.description;
+          render();
+        }
+      } catch (e) {
+        alertBox.className = 'alert warning';
+        alertBox.textContent = 'Connection error: ' + e.message;
+      }
+    });
+
+    // High-Res Server Download
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('downloadBtn');
+      btn.disabled = true;
+      btn.textContent = 'Rendering High-Res PNG…';
+      try {
+        const res = await fetch('/api/render-post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            headline: document.getElementById('headline').value,
+            description: document.getElementById('desc').value,
+            brand: document.getElementById('brand').value,
+            color_theme: document.getElementById('colorTheme').value,
+            image_url: currentImage ? currentImage.src : null
+          })
+        });
+        if (!res.ok) throw new Error('Render failed on server');
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'vox-bulletin-post.png';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      } catch (e) {
+        canvas.toBlob(blob => {
+          if (!blob) return alert('Export failed');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'vox-bulletin-post.png';
+          a.click();
+        }, 'image/png');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '↓ Download High-Res Post (1080×1350)';
+      }
+    });
+  </script>
+</body>
+</html>

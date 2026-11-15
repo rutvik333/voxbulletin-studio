@@ -1,0 +1,21 @@
+# Environment and Secrets (CRITICAL: Never commit API keys or credentials)
+config.php
+config.local.php
+.env
+*.key
+*.pem
+
+# Local databases and generated post images
+storage/*.sqlite
+storage/*.sqlite3
+storage/*.db
+storage/posts/
+
+# Logs & temp files
+*.log
+test_*.js
+*.tmp
+
+# Operating System files
+.DS_Store
+Thumbs.db

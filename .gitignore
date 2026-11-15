@@ -1,0 +1,34 @@
+# Environment and Secrets (CRITICAL: Never commit API keys or credentials)
+config.php
+config.local.php
+config.json
+facebook-post-extractor/config.json
+.env
+*.key
+*.pem
+
+# Local databases and generated post images
+storage/*.sqlite
+storage/*.sqlite3
+storage/*.db
+storage/posts/
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Scratch files, test images & logs
+*.log
+scratch/
+test_*.png
+test_*.js
+*.tmp
+in
+
+# Operating System files
+.DS_Store
+Thumbs.db
