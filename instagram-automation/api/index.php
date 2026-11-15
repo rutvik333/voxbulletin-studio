@@ -1021,5 +1021,88 @@ return [
  if($action==='posts'){
   $rows=db()->query('SELECT id,source_url,source_title,headline,description,caption,image_file,channels_published,created_at FROM posts ORDER BY id DESC LIMIT 50')->fetchAll();out(['items'=>$rows]);
  }
+ if($action==='delete_post'){
+  csrf();
+  $in=json_decode(file_get_contents('php://input'),true)?:[];
+  $id=(int)($in['id']??0);
+  if(!$id)out(['error'=>'Invalid post ID'],400);
+  $pdo=db();
+  $stmt=$pdo->prepare('SELECT image_file FROM posts WHERE id=?');
+  $stmt->execute([$id]);
+  $row=$stmt->fetch();
+  if(!$row)out(['error'=>'Post not found'],404);
+  if(!empty($row['image_file'])){
+   $f=dirname(__DIR__).'/storage/posts/'.$row['image_file'];
+   if(is_file($f))@unlink($f);
+  }
+  $del=$pdo->prepare('DELETE FROM posts WHERE id=?');
+  $del->execute([$id]);
+  out(['ok'=>true,'message'=>'Post #'.$id.' and its image deleted successfully.']);
+ }
+ if($action==='delete_posts'){
+  csrf();
+  $in=json_decode(file_get_contents('php://input'),true)?:[];
+  $ids=array_filter(array_map('intval',(array)($in['ids']??[])));
+  $deleteAll=!empty($in['all']);
+  $pdo=db();
+  $deletedFiles=0;
+  $deletedRows=0;
+  if($deleteAll){
+   $rows=$pdo->query('SELECT id, image_file FROM posts')->fetchAll();
+   foreach($rows as $r){
+    if(!empty($r['image_file'])){
+     $f=dirname(__DIR__).'/storage/posts/'.$r['image_file'];
+     if(is_file($f)){@unlink($f);$deletedFiles++;}
+    }
+   }
+   $deletedRows=$pdo->exec('DELETE FROM posts');
+   out(['ok'=>true,'message'=>'All posts and image files deleted.','deleted_posts'=>$deletedRows,'deleted_files'=>$deletedFiles]);
+  }
+  if(empty($ids))out(['error'=>'No post IDs selected for deletion'],400);
+  $inClause=implode(',',array_fill(0,count($ids),'?'));
+  $stmt=$pdo->prepare("SELECT id, image_file FROM posts WHERE id IN ($inClause)");
+  $stmt->execute($ids);
+  $rows=$stmt->fetchAll();
+  foreach($rows as $r){
+   if(!empty($r['image_file'])){
+    $f=dirname(__DIR__).'/storage/posts/'.$r['image_file'];
+    if(is_file($f)){@unlink($f);$deletedFiles++;}
+   }
+  }
+  $delStmt=$pdo->prepare("DELETE FROM posts WHERE id IN ($inClause)");
+  $delStmt->execute($ids);
+  $deletedRows=$delStmt->rowCount();
+  out(['ok'=>true,'message'=>"Deleted $deletedRows post(s) and freed disk storage.",'deleted_posts'=>$deletedRows,'deleted_files'=>$deletedFiles]);
+ }
+ if($action==='cleanup_storage'){
+  csrf();
+  $days=7;
+  $cutoff=date('Y-m-d H:i:s',strtotime("-$days days"));
+  $pdo=db();
+  $stmt=$pdo->prepare('SELECT id, image_file FROM posts WHERE created_at < ?');
+  $stmt->execute([$cutoff]);
+  $rows=$stmt->fetchAll();
+  $deletedFiles=0;
+  foreach($rows as $r){
+   if(!empty($r['image_file'])){
+    $f=dirname(__DIR__).'/storage/posts/'.$r['image_file'];
+    if(is_file($f)){@unlink($f);$deletedFiles++;}
+   }
+  }
+  $delStmt=$pdo->prepare('DELETE FROM posts WHERE created_at < ?');
+  $delStmt->execute([$cutoff]);
+  $deletedRows=$delStmt->rowCount();
+
+  $folder=dirname(__DIR__).'/storage/posts';
+  if(is_dir($folder)){
+   foreach(glob($folder.'/*.png') as $imgFile){
+    if(filemtime($imgFile)<(time()-$days*86400)){
+     @unlink($imgFile);
+     $deletedFiles++;
+    }
+   }
+  }
+  out(['ok'=>true,'message'=>"Weekly cleanup complete: Deleted $deletedRows post(s) older than 7 days and freed disk space.",'deleted_posts'=>$deletedRows,'deleted_files'=>$deletedFiles]);
+ }
  out(['error'=>'Unknown action'],404);
 }catch(Throwable $e){out(['error'=>'Operation failed: '.$e->getMessage()],500);}

@@ -381,6 +381,43 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS automation_logs (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )');
 
+// ============================================================
+// WEEKLY STORAGE CLEANUP: Purge posts & images older than 7 days
+// Guarantees Hostinger / local disk storage never fills up
+// ============================================================
+try {
+    $cleanupCutoff = date('Y-m-d H:i:s', strtotime('-7 days'));
+    $oldPostsStmt = $pdo->prepare("SELECT id, image_file FROM posts WHERE created_at < ?");
+    $oldPostsStmt->execute([$cleanupCutoff]);
+    $oldPosts = $oldPostsStmt->fetchAll(PDO::FETCH_ASSOC);
+    $freedImages = 0;
+    foreach ($oldPosts as $op) {
+        if (!empty($op['image_file'])) {
+            $fpath = __DIR__ . '/storage/posts/' . $op['image_file'];
+            if (is_file($fpath)) {
+                @unlink($fpath);
+                $freedImages++;
+            }
+        }
+    }
+    if (!empty($oldPosts)) {
+        $delOldStmt = $pdo->prepare("DELETE FROM posts WHERE created_at < ?");
+        $delOldStmt->execute([$cleanupCutoff]);
+        echo "[Storage Cleanup] Purged " . count($oldPosts) . " post(s) older than 7 days ($freedImages storage image files deleted).\n";
+    }
+    // Also clean any orphaned png files in storage/posts older than 7 days
+    $storagePostsDir = __DIR__ . '/storage/posts';
+    if (is_dir($storagePostsDir)) {
+        foreach (glob($storagePostsDir . '/*.png') as $orphan) {
+            if (filemtime($orphan) < (time() - (7 * 86400))) {
+                @unlink($orphan);
+            }
+        }
+    }
+} catch (Throwable $e) {
+    echo "[Storage Cleanup Notice] " . $e->getMessage() . "\n";
+}
+
 // 1. Fetch connected channels
 $channels = $pdo->query('SELECT platform, account_name, account_handle, remote_id, access_token FROM channels WHERE is_connected = 1')->fetchAll();
 if (empty($channels)) {

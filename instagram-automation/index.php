@@ -4,7 +4,22 @@ $authed=!empty($_SESSION['logged_in']);
 $csrf=$_SESSION['csrf']??'';
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vox Bulletin Studio</title><link rel="icon" type="image/x-icon" href="favicon.ico"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>
-:root{font-family:'DM Sans',Arial,sans-serif;color:#e9eef9;background:#080e1c}*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.shell{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:100vh}.sidebar{border-right:1px solid #233048;background:#0b1425;padding:28px 20px}.brand{font-family:'Barlow Condensed';font-size:30px;font-weight:900;letter-spacing:1.5px;color:#fff}.brand span{color:#ffd12a}.sub{color:#8291aa;font-size:12px;letter-spacing:2px}.nav{margin-top:48px}.nav button{width:100%;background:transparent;border:0;color:#a9b7d0;text-align:left;padding:14px;border-radius:10px;margin-bottom:5px;font-weight:600}.nav button.active,.nav button:hover{background:#172641;color:white}.main{padding:34px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.top h1{font-size:28px;margin:0 0 5px}.muted{color:#91a1ba;font-size:13px}.pill{padding:9px 13px;background:#123528;border:1px solid #245a45;color:#71e5aa;border-radius:30px;font-size:12px;font-weight:700}.layout{display:grid;grid-template-columns:minmax(320px,1fr) minmax(340px,1fr);gap:24px;margin-top:28px}.panel{border:1px solid #24324b;background:#101b2d;border-radius:18px;padding:23px;min-width:0}.panel h2{margin:0 0 8px;font-size:17px}.panel .muted{margin-bottom:20px}.field{margin:16px 0}label{display:block;font-size:12px;font-weight:700;color:#a6b5cd;margin-bottom:8px}input,textarea,select{width:100%;border:1px solid #33435d;background:#0b1527;color:#f1f5ff;border-radius:10px;padding:12px;outline:none}textarea{resize:vertical;min-height:86px}input:focus,textarea:focus{border-color:#5784ff}.btn{border:0;border-radius:10px;background:#f6c92e;color:#101726;font-weight:800;padding:12px 18px}.btn.alt{background:#24334c;color:#e9f1ff}.btn.blue{background:#447aff;color:white}.btn.small{padding:8px 11px;font-size:12px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stories{max-height:480px;overflow-y:auto;display:grid;gap:10px;margin:14px 0;padding-right:4px}.story{display:flex;align-items:center;gap:13px;padding:10px 12px;background:#0b1527;border:1px solid #24344d;border-radius:12px;text-align:left;color:#dce5f7;cursor:pointer;transition:all .18s ease;width:100%}.story:hover,.story.selected{border-color:#f6c92e;background:#13223b}.story-thumb{width:68px;height:68px;border-radius:8px;object-fit:cover;background:#16243a;flex-shrink:0;border:1px solid #273a56}.story-body{flex:1;min-width:0}.story-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}.story .idx{color:#f6c92e;font-size:11px;font-weight:700}.story-date{font-size:10px;font-weight:700;color:#71e5aa;background:#102e21;border:1px solid #1c523b;padding:2px 7px;border-radius:10px}.story-title{font-size:13px;font-weight:600;color:#e7effc;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.preview-wrap{background:#080f1d;border:1px solid #2d3b55;border-radius:14px;padding:15px;display:flex;justify-content:center}.preview-wrap canvas{width:min(100%,380px);height:auto;aspect-ratio:4/5;box-shadow:0 12px 35px #0006}.notice{margin-top:18px;background:#132b40;border:1px solid #285372;color:#bde3fa;border-radius:10px;padding:12px;font-size:13px;line-height:1.5}.error{background:#3c1d28;border-color:#79354a;color:#ffc6d0}.hide{display:none!important}.login{max-width:430px;margin:12vh auto;background:#101b2d;border:1px solid #283a53;padding:35px;border-radius:18px}.login h1{margin:5px 0}.gridposts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:17px;margin-top:25px}.post{border:1px solid #2d3b55;border-radius:12px;overflow:hidden;background:#101b2d}.post img{width:100%;display:block}.post>div{padding:14px}.post h3{font-size:15px;margin:0 0 10px}.post a{color:#ffd12a;font-size:12px}.status{margin:15px 0;font-size:13px;color:#a9c3e9;min-height:20px}.inline{display:flex;gap:8px;align-items:center}.inline input{flex:1}.divider{height:1px;background:#24344d;margin:20px 0}@media(max-width:1000px){.layout{grid-template-columns:1fr}.shell{grid-template-columns:1fr}.sidebar{padding:15px 20px;display:flex;align-items:center;justify-content:space-between}.nav{margin:0;display:flex}.nav button{margin:0}.main{padding:20px}}
+:root{font-family:'DM Sans',Arial,sans-serif;color:#e9eef9;background:#080e1c}*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.shell{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:100vh}.sidebar{border-right:1px solid #233048;background:#0b1425;padding:28px 20px}.brand{font-family:'Barlow Condensed';font-size:30px;font-weight:900;letter-spacing:1.5px;color:#fff}.brand span{color:#ffd12a}.sub{color:#8291aa;font-size:12px;letter-spacing:2px}.nav{margin-top:48px}.nav button{width:100%;background:transparent;border:0;color:#a9b7d0;text-align:left;padding:14px;border-radius:10px;margin-bottom:5px;font-weight:600}.nav button.active,.nav button:hover{background:#172641;color:white}.main{padding:34px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.top h1{font-size:28px;margin:0 0 5px}.muted{color:#91a1ba;font-size:13px}.pill{padding:9px 13px;background:#123528;border:1px solid #245a45;color:#71e5aa;border-radius:30px;font-size:12px;font-weight:700}.layout{display:grid;grid-template-columns:minmax(320px,1fr) minmax(340px,1fr);gap:24px;margin-top:28px}.panel{border:1px solid #24324b;background:#101b2d;border-radius:18px;padding:23px;min-width:0}.panel h2{margin:0 0 8px;font-size:17px}.panel .muted{margin-bottom:20px}.field{margin:16px 0}label{display:block;font-size:12px;font-weight:700;color:#a6b5cd;margin-bottom:8px}input,textarea,select{width:100%;border:1px solid #33435d;background:#0b1527;color:#f1f5ff;border-radius:10px;padding:12px;outline:none}textarea{resize:vertical;min-height:86px}input:focus,textarea:focus{border-color:#5784ff}.btn{border:0;border-radius:10px;background:#f6c92e;color:#101726;font-weight:800;padding:12px 18px}.btn.alt{background:#24334c;color:#e9f1ff}.btn.blue{background:#447aff;color:white}.btn.small{padding:8px 11px;font-size:12px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stories{max-height:480px;overflow-y:auto;display:grid;gap:10px;margin:14px 0;padding-right:4px}.story{display:flex;align-items:center;gap:13px;padding:10px 12px;background:#0b1527;border:1px solid #24344d;border-radius:12px;text-align:left;color:#dce5f7;cursor:pointer;transition:all .18s ease;width:100%}.story:hover,.story.selected{border-color:#f6c92e;background:#13223b}.story-thumb{width:68px;height:68px;border-radius:8px;object-fit:cover;background:#16243a;flex-shrink:0;border:1px solid #273a56}.story-body{flex:1;min-width:0}.story-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}.story .idx{color:#f6c92e;font-size:11px;font-weight:700}.story-date{font-size:10px;font-weight:700;color:#71e5aa;background:#102e21;border:1px solid #1c523b;padding:2px 7px;border-radius:10px}.story-title{font-size:13px;font-weight:600;color:#e7effc;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.preview-wrap{background:#080f1d;border:1px solid #2d3b55;border-radius:14px;padding:15px;display:flex;justify-content:center}.preview-wrap canvas{width:min(100%,380px);height:auto;aspect-ratio:4/5;box-shadow:0 12px 35px #0006}.notice{margin-top:18px;background:#132b40;border:1px solid #285372;color:#bde3fa;border-radius:10px;padding:12px;font-size:13px;line-height:1.5}.error{background:#3c1d28;border-color:#79354a;color:#ffc6d0}.hide{display:none!important}.login{max-width:430px;margin:12vh auto;background:#101b2d;border:1px solid #283a53;padding:35px;border-radius:18px}.login h1{margin:5px 0}.gridposts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:17px;margin-top:20px}
+.post{border:1px solid #2d3b55;border-radius:12px;overflow:hidden;background:#101b2d;position:relative;transition:border-color .15s,box-shadow .15s;display:flex;flex-direction:column}
+.post.selected{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.35)}
+.post img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block}
+.post>div{padding:14px;display:flex;flex-direction:column;flex:1}
+.post h3{font-size:15px;margin:0 0 10px;line-height:1.35}
+.post a{color:#ffd12a;font-size:12px;font-weight:600}
+.post-check-wrap{position:absolute;top:10px;left:10px;z-index:4;background:rgba(8,14,28,.82);backdrop-filter:blur(6px);padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;cursor:pointer}
+.post-check-wrap input{cursor:pointer;width:18px;height:18px;accent-color:#38bdf8;margin:0}
+.post-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:12px;border-top:1px solid #1c2c47}
+.btn-del-single{background:transparent;border:1px solid rgba(239,68,68,.4);color:#f87171;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.btn-del-single:hover{background:#ef4444;color:#fff;border-color:#ef4444}
+.btn-danger{background:#7f1d1d;border:1px solid #b91c1c;color:#fca5a5;font-weight:700;padding:7px 14px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;transition:all .15s}
+.btn-danger:hover:not(:disabled){background:#991b1b;color:#fff}
+.btn-danger:disabled{opacity:.4;cursor:not-allowed}
+.library-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px;padding:12px 16px;background:#0f1a2e;border:1px solid #20314d;border-radius:10px}.status{margin:15px 0;font-size:13px;color:#a9c3e9;min-height:20px}.inline{display:flex;gap:8px;align-items:center}.inline input{flex:1}.divider{height:1px;background:#24344d;margin:20px 0}@media(max-width:1000px){.layout{grid-template-columns:1fr}.shell{grid-template-columns:1fr}.sidebar{padding:15px 20px;display:flex;align-items:center;justify-content:space-between}.nav{margin:0;display:flex}.nav button{margin:0}.main{padding:20px}}
 
 /* Modals */
 .modal-overlay{position:fixed;inset:0;background:rgba(4,8,18,0.85);backdrop-filter:blur(6px);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -93,7 +108,25 @@ input:checked + .slider:before{transform:translateX(20px)}
   <button type="button" class="btn alt" onclick="shuffleTheme()">🎨 Shuffle Colors</button>
   <button type="button" class="btn alt" onclick="save()" id="saveBtn">💾 Save to Library</button>
 </div>
-<div id="status" class="notice">Select any news story from the list — title, description, and hero image will auto-apply instantly!</div></div></section></div><div id="libraryPage" class="hide"><div class="actions" style="margin-top:25px"><button class="btn blue" onclick="loadPosts()">↻ Refresh library</button></div><div id="postGrid" class="gridposts"></div></div><div id="automationPage" class="hide">
+<div id="status" class="notice">Select any news story from the list — title, description, and hero image will auto-apply instantly!</div></div></section></div><div id="libraryPage" class="hide">
+  <div class="library-toolbar">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn blue small" onclick="loadPosts()">↻ Refresh library</button>
+      <button type="button" class="btn alt small" onclick="toggleSelectAllPosts()" id="selectAllBtn">Select All</button>
+      <button type="button" class="btn-danger" onclick="deleteSelectedPosts()" id="deleteSelectedBtn" disabled>
+        🗑 Delete Selected (<span id="selectedCount">0</span>)
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="postCountBadge" class="pill" style="font-size:12px;background:#152642;border-color:#233a61;color:#93c5fd">0 posts</span>
+      <button type="button" class="btn alt small" onclick="cleanupWeeklyPosts()" title="Clean posts and images older than 7 days to free up disk storage">
+        🧹 Run 7-Day Storage Cleanup
+      </button>
+    </div>
+  </div>
+  <div id="libraryStatus" class="notice hide" style="margin-top:14px"></div>
+  <div id="postGrid" class="gridposts"></div>
+</div><div id="automationPage" class="hide">
   <div class="panel" style="max-width:880px;margin:24px auto">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
       <div>
@@ -1651,7 +1684,66 @@ function render(){
 ['headline','description'].forEach(id=>$(id).addEventListener('input',render));if($('captionX'))$('captionX').addEventListener('input',updateXCounter);document.fonts.ready.then(render);render();if(csrf){loadSettings();loadChannels();fetchNews();}
 function download(){render();const a=document.createElement('a');a.href=$('poster').toDataURL('image/png');a.download='vox-bulletin-'+Date.now()+'.png';a.click()}
 async function save(){if(!current)return status('Select a source article first.',true);if(!photo)return status('Add a topic image before saving.',true);if(!$('headline').value.trim()||!$('description').value.trim())return status('Headline and description are required.',true);const b=$('saveBtn');b.disabled=true;status('Saving PNG and post metadata to Hostinger...');try{render();const j=await req('save',{method:'POST',body:JSON.stringify({url:current.url,source_title:current.title,headline:$('headline').value,description:$('description').value,caption:$('caption').value,source_image_url:sourceImage,image:$('poster').toDataURL('image/png')})});status('Saved successfully! Post #'+j.id+' is available in your Post Library.')}catch(e){status(e.message,true)}finally{b.disabled=false}}
-async function loadPosts(){const grid=$('postGrid');grid.textContent='Loading...';try{const j=await req('posts');grid.replaceChildren();for(const p of j.items){const card=document.createElement('div');card.className='post';const im=document.createElement('img');im.src='storage/posts/'+encodeURIComponent(p.image_file);im.loading='lazy';const body=document.createElement('div');const h=document.createElement('h3');h.textContent=p.headline;const a=document.createElement('a');a.href=im.src;a.download='vox-bulletin-'+p.id+'.png';a.textContent='Download image';const s=document.createElement('p');s.className='muted';s.textContent=p.created_at;const chRow=document.createElement('div');
+let savedPostsData = [];
+
+async function loadPosts(){
+  const grid=$('postGrid');
+  grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8"><span style="animation:spin 1s linear infinite;display:inline-block">&#9696;</span> Loading post library...</div>';
+  updateSelectedCount();
+  try{
+    const j=await req('posts');
+    savedPostsData = j.items || [];
+    grid.replaceChildren();
+    if($('postCountBadge')) $('postCountBadge').textContent = savedPostsData.length + ' post' + (savedPostsData.length === 1 ? '' : 's');
+
+    if(!savedPostsData.length){
+      grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px;color:#64748b;font-size:15px">No saved posts yet. Create a post or let the 3x/day automation generate them!</div>';
+      return;
+    }
+
+    savedPostsData.forEach(p => {
+      const card=document.createElement('div');
+      card.className='post';
+      card.id = 'postCard_' + p.id;
+
+      // Selection Checkbox
+      const checkWrap = document.createElement('label');
+      checkWrap.className = 'post-check-wrap';
+      checkWrap.title = 'Select post';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'post-check';
+      chk.value = p.id;
+      chk.onchange = () => {
+        card.classList.toggle('selected', chk.checked);
+        updateSelectedCount();
+      };
+      checkWrap.append(chk);
+      card.append(checkWrap);
+
+      // Thumbnail Image
+      const im=document.createElement('img');
+      im.src='storage/posts/'+encodeURIComponent(p.image_file);
+      im.loading='lazy';
+      im.alt='post image';
+      im.onerror = () => { im.style.background = '#0a101d'; im.style.display = 'none'; };
+      card.append(im);
+
+      const body=document.createElement('div');
+      const h=document.createElement('h3');
+      h.textContent=p.headline;
+
+      const s=document.createElement('p');
+      s.className='muted';
+      s.style.fontSize='12px';
+      s.style.margin='0 0 10px';
+      s.textContent=p.created_at;
+
+      const chRow=document.createElement('div');
+      chRow.style.display='flex';
+      chRow.style.gap='5px';
+      chRow.style.flexWrap='wrap';
+      chRow.style.marginBottom='10px';
       if(p.channels_published){
         p.channels_published.split(',').filter(Boolean).forEach(ch=>{
           const chSpan=document.createElement('span');
@@ -1660,7 +1752,126 @@ async function loadPosts(){const grid=$('postGrid');grid.textContent='Loading...
           chRow.append(chSpan);
         });
       }
-      body.append(h,s,chRow,a);card.append(im,body);grid.append(card)}if(!j.items.length)grid.textContent='No saved posts yet.'}catch(e){grid.textContent=e.message}}
+
+      // Footer with Download and Delete buttons
+      const footer=document.createElement('div');
+      footer.className='post-card-footer';
+
+      const a=document.createElement('a');
+      a.href=im.src;
+      a.download='vox-bulletin-'+p.id+'.png';
+      a.textContent='↓ Download';
+
+      const delBtn=document.createElement('button');
+      delBtn.type='button';
+      delBtn.className='btn-del-single';
+      delBtn.innerHTML='🗑 Delete';
+      delBtn.title='Permanently delete this post and free storage';
+      delBtn.onclick=()=>deleteSinglePost(p.id);
+
+      footer.append(a, delBtn);
+      body.append(h, s, chRow, footer);
+      card.append(body);
+      grid.append(card);
+    });
+  }catch(e){
+    grid.innerHTML='<div style="grid-column:1/-1;color:#ef4444;padding:20px">'+e.message+'</div>';
+  }
+}
+
+function updateSelectedCount(){
+  const checked = document.querySelectorAll('.post-check:checked');
+  const count = checked.length;
+  if($('selectedCount')) $('selectedCount').textContent = count;
+  if($('deleteSelectedBtn')) $('deleteSelectedBtn').disabled = (count === 0);
+  if($('selectAllBtn')){
+    const total = document.querySelectorAll('.post-check').length;
+    $('selectAllBtn').textContent = (total > 0 && count === total) ? 'Deselect All' : 'Select All';
+  }
+}
+
+function toggleSelectAllPosts(){
+  const allChecks = Array.from(document.querySelectorAll('.post-check'));
+  if(!allChecks.length) return;
+  const anyUnchecked = allChecks.some(c => !c.checked);
+  allChecks.forEach(c => {
+    c.checked = anyUnchecked;
+    const card = $('postCard_' + c.value);
+    if(card) card.classList.toggle('selected', anyUnchecked);
+  });
+  updateSelectedCount();
+}
+
+async function deleteSinglePost(id){
+  if(!confirm('Are you sure you want to delete Post #' + id + '?\n\nIts 1080x1350 image file will be permanently removed from disk storage to free up space.')){
+    return;
+  }
+  try{
+    const res = await req('delete_post', {
+      method: 'POST',
+      body: JSON.stringify({ id: id })
+    });
+    showLibraryNotice('✓ ' + res.message);
+    await loadPosts();
+  }catch(e){
+    showLibraryNotice('✗ ' + e.message, true);
+  }
+}
+
+async function deleteSelectedPosts(){
+  const checked = Array.from(document.querySelectorAll('.post-check:checked'));
+  const ids = checked.map(c => parseInt(c.value, 10)).filter(Boolean);
+  if(!ids.length) return;
+
+  const total = document.querySelectorAll('.post-check').length;
+  const isAll = (ids.length === total);
+
+  const confirmMsg = isAll
+    ? '⚠️ DELETE ALL POSTS:\n\nAre you sure you want to permanently delete ALL ' + ids.length + ' saved posts?\n\nAll corresponding image files will be permanently deleted from disk storage to free up disk space.'
+    : 'Are you sure you want to delete ' + ids.length + ' selected post(s)?\n\nTheir image files will be permanently removed from disk storage.';
+
+  if(!confirm(confirmMsg)) return;
+
+  const btn = $('deleteSelectedBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  try{
+    const res = await req('delete_posts', {
+      method: 'POST',
+      body: JSON.stringify({ ids: ids, all: isAll })
+    });
+    showLibraryNotice('✓ ' + res.message);
+    await loadPosts();
+  }catch(e){
+    showLibraryNotice('✗ ' + e.message, true);
+  }finally{
+    if($('deleteSelectedBtn')) $('deleteSelectedBtn').textContent = '🗑 Delete Selected (' + document.querySelectorAll('.post-check:checked').length + ')';
+  }
+}
+
+async function cleanupWeeklyPosts(){
+  if(!confirm('🧹 RUN 7-DAY STORAGE CLEANUP:\n\nAre you sure you want to purge all posts and images older than 7 days?\n\nThis permanently frees disk storage so Hostinger never runs out of space.\n(Note: This also runs automatically in your 3x/day cron scheduler).')){
+    return;
+  }
+  showLibraryNotice('Running 7-day storage cleanup...');
+  try{
+    const res = await req('cleanup_storage', { method: 'POST', body: '{}' });
+    showLibraryNotice('✓ ' + res.message);
+    await loadPosts();
+  }catch(e){
+    showLibraryNotice('✗ ' + e.message, true);
+  }
+}
+
+function showLibraryNotice(msg, isError){
+  const el = $('libraryStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'notice' + (isError ? ' error' : '');
+  el.classList.remove('hide');
+  setTimeout(() => { el.classList.add('hide'); }, 6000);
+}
 </script>
 <!-- Connect Channel & Consent Modal (Matching Images 1, 2, 3, 4, 5) -->
 <div id="channelModal" class="modal-overlay hide">
