@@ -290,7 +290,7 @@ if (!function_exists('callGeminiWithFailover')) {
         }
 
         $isJson = !empty($options['json']);
-        $model = $options['model'] ?? 'gemini-2.5-flash';
+        $preferredModel = $options['model'] ?? 'gemini-3.8-flash';
         $temperature = $options['temperature'] ?? 0.25;
 
         $generationConfig = ['temperature' => $temperature];
@@ -305,38 +305,55 @@ if (!function_exists('callGeminiWithFailover')) {
             'generationConfig' => $generationConfig
         ], JSON_UNESCAPED_SLASHES);
 
+        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash']));
         $errors = [];
-        foreach ($keys as $idx => $key) {
-            $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_POST => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 35,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
-                CURLOPT_POSTFIELDS => $payload
-            ]);
-            $raw = curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
 
-            $res = json_decode($raw ?: '', true);
+        foreach ($keys as $idx => $key) {
             $masked = (strlen($key) > 10) ? substr($key, 0, 6) . '...' . substr($key, -4) : 'Key#' . ($idx + 1);
 
-            if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
-                return [
-                    'ok' => true,
-                    'text' => $res['candidates'][0]['content']['parts'][0]['text'],
-                    'key_index' => $idx,
-                    'key_used' => $masked,
-                    'failovers' => $idx,
-                    'data' => $res
-                ];
-            }
+            foreach ($modelsToTry as $model) {
+                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_POST => true,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 35,
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+                    CURLOPT_POSTFIELDS => $payload
+                ]);
+                $raw = curl_exec($ch);
+                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
 
-            $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
-            $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
-            $errors[] = "Key #" . ($idx + 1) . " (" . $masked . "): " . ($isQuota ? "Daily quota exceeded" : $errMsg);
+                $res = json_decode($raw ?: '', true);
+
+                if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
+                    return [
+                        'ok' => true,
+                        'text' => $res['candidates'][0]['content']['parts'][0]['text'],
+                        'key_index' => $idx,
+                        'key_used' => $masked,
+                        'model_used' => $model,
+                        'failovers' => $idx,
+                        'data' => $res
+                    ];
+                }
+
+                $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
+                $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+
+                if ($isQuota) {
+                    $errors[] = "Key #" . ($idx + 1) . " ($masked): Daily quota exceeded (HTTP $code)";
+                    break;
+                }
+
+                if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
+                    continue;
+                }
+
+                $errors[] = "Key #" . ($idx + 1) . " ($masked): $errMsg";
+                break;
+            }
         }
 
         return [

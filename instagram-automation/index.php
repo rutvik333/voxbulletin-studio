@@ -229,13 +229,97 @@ input:checked + .slider:before{transform:translateX(20px)}
   </div>
 
   <form id="settingsForm" onsubmit="saveSettings(event)">
-    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-      <label style="margin:0;font-size:13px;color:#cbd5e1">CONFIGURED GEMINI API KEYS (<span id="keyPoolCount" style="color:#ffd12a;font-weight:700">0</span>)</label>
-      <button type="button" class="btn alt small" onclick="addKeyRow('')" style="padding:4px 10px;font-size:11px;font-weight:700;color:#ffd12a;border-color:#783510">+ Add Another API Key</button>
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <label style="margin:0;font-size:13px;color:#cbd5e1;font-weight:700">CONFIGURED GEMINI API KEYS (<span id="keyPoolCount" style="color:#ffd12a;font-weight:700">0</span> Active in Pool)</label>
+      <span style="font-size:11px;color:#64748b">Takes all available non-empty keys (Slots 1–5)</span>
     </div>
 
-    <div id="geminiKeysContainer" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
-      <!-- Dynamically populated key rows -->
+    <!-- 5 Explicit Key Slots -->
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
+      <!-- Slot 0: Primary -->
+      <div class="key-card">
+        <div class="key-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="key-badge primary">KEY #1 (PRIMARY)</span>
+            <span id="keyStatus_0" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+          <div class="key-actions">
+            <button type="button" class="btn alt small" style="padding:3px 8px;font-size:11px" onclick="testSingleKey(0)">⚡ Test Quota</button>
+          </div>
+        </div>
+        <div class="inline">
+          <input type="password" id="geminiKey_0" placeholder="Paste Primary Gemini API Key (e.g. AIzaSy... or AQ.Ab8...)" oninput="updateKeyPoolCount()">
+          <button type="button" class="btn alt small" onclick="toggleSlotVis(0, this)">SHOW</button>
+        </div>
+      </div>
+
+      <!-- Slot 1: Backup 1 -->
+      <div class="key-card">
+        <div class="key-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="key-badge">KEY #2 (BACKUP / FAILOVER #1)</span>
+            <span id="keyStatus_1" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+          <div class="key-actions">
+            <button type="button" class="btn alt small" style="padding:3px 8px;font-size:11px" onclick="testSingleKey(1)">⚡ Test Quota</button>
+          </div>
+        </div>
+        <div class="inline">
+          <input type="password" id="geminiKey_1" placeholder="Paste Backup Gemini Key #2 (Optional - leave blank if not using)" oninput="updateKeyPoolCount()">
+          <button type="button" class="btn alt small" onclick="toggleSlotVis(1, this)">SHOW</button>
+        </div>
+      </div>
+
+      <!-- Slot 2: Backup 2 -->
+      <div class="key-card">
+        <div class="key-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="key-badge">KEY #3 (BACKUP / FAILOVER #2)</span>
+            <span id="keyStatus_2" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+          <div class="key-actions">
+            <button type="button" class="btn alt small" style="padding:3px 8px;font-size:11px" onclick="testSingleKey(2)">⚡ Test Quota</button>
+          </div>
+        </div>
+        <div class="inline">
+          <input type="password" id="geminiKey_2" placeholder="Paste Backup Gemini Key #3 (Optional - leave blank if not using)" oninput="updateKeyPoolCount()">
+          <button type="button" class="btn alt small" onclick="toggleSlotVis(2, this)">SHOW</button>
+        </div>
+      </div>
+
+      <!-- Slot 3: Backup 3 -->
+      <div class="key-card">
+        <div class="key-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="key-badge">KEY #4 (BACKUP / FAILOVER #3)</span>
+            <span id="keyStatus_3" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+          <div class="key-actions">
+            <button type="button" class="btn alt small" style="padding:3px 8px;font-size:11px" onclick="testSingleKey(3)">⚡ Test Quota</button>
+          </div>
+        </div>
+        <div class="inline">
+          <input type="password" id="geminiKey_3" placeholder="Paste Backup Gemini Key #4 (Optional - leave blank if not using)" oninput="updateKeyPoolCount()">
+          <button type="button" class="btn alt small" onclick="toggleSlotVis(3, this)">SHOW</button>
+        </div>
+      </div>
+
+      <!-- Slot 4: Backup 4 -->
+      <div class="key-card">
+        <div class="key-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="key-badge">KEY #5 (BACKUP / FAILOVER #4)</span>
+            <span id="keyStatus_4" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+          <div class="key-actions">
+            <button type="button" class="btn alt small" style="padding:3px 8px;font-size:11px" onclick="testSingleKey(4)">⚡ Test Quota</button>
+          </div>
+        </div>
+        <div class="inline">
+          <input type="password" id="geminiKey_4" placeholder="Paste Backup Gemini Key #5 (Optional - leave blank if not using)" oninput="updateKeyPoolCount()">
+          <button type="button" class="btn alt small" onclick="toggleSlotVis(4, this)">SHOW</button>
+        </div>
+      </div>
     </div>
 
     <div class="field" style="margin-top:20px;border-top:1px solid #1e3556;padding-top:18px">
@@ -1147,112 +1231,33 @@ async function runAutomationCycle(){
   }
 }
 
-let configuredGeminiKeys = [];
-
-function renderGeminiKeysList(keys){
-  configuredGeminiKeys = Array.isArray(keys) ? keys.filter(k => k && k.trim()) : [];
-  if(!configuredGeminiKeys.length) configuredGeminiKeys = [''];
-
-  const container = $('geminiKeysContainer');
-  if(!container) return;
-  container.replaceChildren();
-
-  const countEl = $('keyPoolCount');
-  if(countEl) countEl.textContent = configuredGeminiKeys.filter(k => k.trim()).length;
-
-  configuredGeminiKeys.forEach((keyVal, idx) => {
-    const card = document.createElement('div');
-    card.className = 'key-card';
-
-    const header = document.createElement('div');
-    header.className = 'key-header';
-
-    const leftH = document.createElement('div');
-    leftH.style.display = 'flex';
-    leftH.style.alignItems = 'center';
-    leftH.style.gap = '8px';
-
-    const badge = document.createElement('span');
-    badge.className = 'key-badge' + (idx === 0 ? ' primary' : '');
-    badge.textContent = idx === 0 ? 'KEY #1 (PRIMARY)' : ('KEY #' + (idx + 1) + ' (FAILOVER #' + idx + ')');
-
-    const statusSpan = document.createElement('span');
-    statusSpan.id = 'keyStatus_' + idx;
-    statusSpan.style.fontSize = '11px';
-    statusSpan.style.color = '#94a3b8';
-
-    leftH.append(badge, statusSpan);
-
-    const rightH = document.createElement('div');
-    rightH.className = 'key-actions';
-
-    const testBtn = document.createElement('button');
-    testBtn.type = 'button';
-    testBtn.className = 'btn alt small';
-    testBtn.style.padding = '3px 8px';
-    testBtn.style.fontSize = '11px';
-    testBtn.textContent = '⚡ Test Quota';
-    testBtn.onclick = () => testSingleKey(idx);
-
-    rightH.append(testBtn);
-
-    if(configuredGeminiKeys.length > 1){
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'btn alt small';
-      delBtn.style.padding = '3px 8px';
-      delBtn.style.fontSize = '11px';
-      delBtn.style.color = '#f87171';
-      delBtn.textContent = '✕ Remove';
-      delBtn.onclick = () => removeKeyRow(idx);
-      rightH.append(delBtn);
-    }
-
-    header.append(leftH, rightH);
-
-    const inpWrap = document.createElement('div');
-    inpWrap.className = 'inline';
-
-    const input = document.createElement('input');
-    input.type = 'password';
-    input.id = 'geminiKey_' + idx;
-    input.value = keyVal;
-    input.placeholder = 'Paste Gemini API key (AQ.Ab8... or AIzaSy...)';
-    input.oninput = () => {
-      configuredGeminiKeys[idx] = input.value.trim();
-      if($('keyPoolCount')) $('keyPoolCount').textContent = configuredGeminiKeys.filter(k => k.trim()).length;
-    };
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = 'btn alt small';
-    toggleBtn.textContent = 'SHOW';
-    toggleBtn.onclick = () => {
-      input.type = input.type === 'password' ? 'text' : 'password';
-      toggleBtn.textContent = input.type === 'password' ? 'SHOW' : 'HIDE';
-    };
-
-    inpWrap.append(input, toggleBtn);
-    card.append(header, inpWrap);
-    container.append(card);
-  });
+function toggleSlotVis(idx, btn){
+  const inp = $('geminiKey_' + idx);
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? 'SHOW' : 'HIDE';
 }
 
-function addKeyRow(val = ''){
-  configuredGeminiKeys.push(val);
-  renderGeminiKeysList(configuredGeminiKeys);
-  const newIdx = configuredGeminiKeys.length - 1;
-  const inp = $('geminiKey_' + newIdx);
-  if(inp) inp.focus();
-}
-
-function removeKeyRow(idx){
-  if(configuredGeminiKeys.length <= 1){
-    configuredGeminiKeys = [''];
-  } else {
-    configuredGeminiKeys.splice(idx, 1);
+function updateKeyPoolCount(){
+  let count = 0;
+  for(let i = 0; i < 5; i++){
+    const inp = $('geminiKey_' + i);
+    if(inp && inp.value.trim()) count++;
   }
-  renderGeminiKeysList(configuredGeminiKeys);
+  if($('keyPoolCount')) $('keyPoolCount').textContent = count;
+  const gp = $('geminiPill');
+  if(gp){
+    if(count > 1){
+      gp.textContent = '● ' + count + ' KEYS LOADED (FAILOVER READY)';
+      gp.style.background = '#123528'; gp.style.borderColor = '#245a45'; gp.style.color = '#71e5aa';
+    } else if(count === 1){
+      gp.textContent = '● 1 KEY ACTIVE';
+      gp.style.background = '#123528'; gp.style.borderColor = '#245a45'; gp.style.color = '#71e5aa';
+    } else {
+      gp.textContent = '● NO KEYS FOUND';
+      gp.style.background = '#382215'; gp.style.borderColor = '#784920'; gp.style.color = '#ffd699';
+    }
+  }
 }
 
 async function testSingleKey(idx){
@@ -1269,11 +1274,11 @@ async function testSingleKey(idx){
       method: 'POST',
       body: JSON.stringify({ key: key })
     });
-    if(st){ st.textContent = '✓ Active (200 OK)'; st.style.color = '#4ade80'; }
+    if(st){ st.textContent = '✓ ' + (res.message || 'Active (200 OK)'); st.style.color = '#4ade80'; }
   }catch(err){
     if(st){
-      if(err.message.includes('429') || err.message.toLowerCase().includes('quota')){
-        st.textContent = '✕ Quota Exceeded (429)'; st.style.color = '#facc15';
+      if(err.message.includes('429') || err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('resource_exhausted')){
+        st.textContent = '✕ Quota Exceeded (429) - Key is valid!'; st.style.color = '#facc15';
       } else {
         st.textContent = '✕ ' + err.message; st.style.color = '#f87171';
       }
@@ -1285,26 +1290,19 @@ async function loadSettings(){
   try{
     const j=await req('get_settings');
     const keys = (j.gemini_keys && j.gemini_keys.length) ? j.gemini_keys : (j.gemini_key ? [j.gemini_key] : []);
-    renderGeminiKeysList(keys);
+
+    for(let i = 0; i < 5; i++){
+      const inp = $('geminiKey_' + i);
+      if(inp){
+        inp.value = (keys && keys[i]) ? keys[i] : '';
+      }
+      const st = $('keyStatus_' + i);
+      if(st) st.textContent = '';
+    }
+    updateKeyPoolCount();
 
     if(j.buffer_access_token && $('bufferTokenInput')) $('bufferTokenInput').value=j.buffer_access_token;
     if(j.public_base_url && $('publicBaseUrlInput')) $('publicBaseUrlInput').value=j.public_base_url;
-
-    // Gemini pill
-    const gp=$('geminiPill');
-    if(gp){
-      const validCount = keys.filter(k => k && k.trim()).length;
-      if(validCount > 1){
-        gp.textContent='● ' + validCount + ' KEYS LOADED (FAILOVER READY)';
-        gp.style.background='#123528';gp.style.borderColor='#245a45';gp.style.color='#71e5aa';
-      } else if(validCount === 1){
-        gp.textContent='● 1 KEY ACTIVE';
-        gp.style.background='#123528';gp.style.borderColor='#245a45';gp.style.color='#71e5aa';
-      } else {
-        gp.textContent='● NO KEYS FOUND';
-        gp.style.background='#382215';gp.style.borderColor='#784920';gp.style.color='#ffd699';
-      }
-    }
 
     // Buffer pill
     const bp=$('bufferPill');
@@ -1347,15 +1345,17 @@ async function saveSettings(e){
   e.preventDefault();
   const b=$('saveSettingsBtn');
   b.disabled=true;
-  $('settingsMsg').textContent='Saving and validating keys...';
+  $('settingsMsg').textContent='Saving keys & settings...';
   $('settingsMsg').classList.remove('error');
 
   const currentKeys = [];
-  const inputs = document.querySelectorAll('[id^="geminiKey_"]');
-  inputs.forEach(inp => {
-    const val = inp.value.trim();
-    if(val && !currentKeys.includes(val)) currentKeys.push(val);
-  });
+  for(let i = 0; i < 5; i++){
+    const inp = $('geminiKey_' + i);
+    if(inp){
+      const val = inp.value.trim();
+      if(val && !currentKeys.includes(val)) currentKeys.push(val);
+    }
+  }
 
   try{
     const pass=$('newAdminPassword').value.trim();
@@ -1365,10 +1365,10 @@ async function saveSettings(e){
         gemini_api_keys: currentKeys,
         gemini_api_key: currentKeys[0] || '',
         admin_password: pass,
-        test: currentKeys.length > 0
+        test: false
       })
     });
-    $('settingsMsg').textContent='✓ '+(j.message||'Settings saved successfully!');
+    $('settingsMsg').textContent='✓ '+(j.message||'Settings saved successfully! ('+currentKeys.length+' key(s) in failover pool)');
     $('newAdminPassword').value='';
     await loadSettings();
   }catch(e){

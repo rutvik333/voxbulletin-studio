@@ -114,35 +114,67 @@ function testGeminiApiKey($key) {
  if (!$key || str_contains($key, 'PASTE_')) {
   return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
  }
- $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . urlencode($key);
- $testPayload = json_encode([
-  'contents' => [['parts' => [['text' => 'ping']]]],
-  'generationConfig' => ['maxOutputTokens' => 2]
- ], JSON_UNESCAPED_SLASHES);
 
- $ch = curl_init($url);
- curl_setopt_array($ch, [
-  CURLOPT_POST => true,
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_TIMEOUT => 15,
-  CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
-  CURLOPT_POSTFIELDS => $testPayload
- ]);
- $resRaw = curl_exec($ch);
- $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
- curl_close($ch);
+ $modelsToTry = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+ $lastErr = '';
+ $lastCode = 0;
 
- if ($code === 200) {
-  return ['ok' => true, 'message' => 'Key is active and responsive (200 OK)!'];
+ foreach ($modelsToTry as $model) {
+  $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
+  $testPayload = json_encode([
+   'contents' => [['parts' => [['text' => 'ping']]]],
+   'generationConfig' => ['maxOutputTokens' => 2]
+  ], JSON_UNESCAPED_SLASHES);
+
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+   CURLOPT_POST => true,
+   CURLOPT_RETURNTRANSFER => true,
+   CURLOPT_TIMEOUT => 10,
+   CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+   CURLOPT_POSTFIELDS => $testPayload
+  ]);
+  $resRaw = curl_exec($ch);
+  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $curlErr = curl_error($ch);
+  curl_close($ch);
+
+  if ($code === 200) {
+   return ['ok' => true, 'model' => $model, 'message' => "Key is active and responsive (200 OK via $model)!"];
+  }
+
+  $res = json_decode($resRaw ?: '', true);
+  $errMsg = $res['error']['message'] ?? ($curlErr ?: ('HTTP ' . $code));
+  $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+
+  if ($isQuota) {
+   return [
+    'ok' => false,
+    'error' => "Daily quota reached (HTTP 429 / RESOURCE_EXHAUSTED). Key is valid! Failover to backup keys is ready.",
+    'is_quota' => true,
+    'code' => $code
+   ];
+  }
+
+  if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false || stripos($errMsg, 'timed out') !== false) {
+   $lastErr = $errMsg;
+   $lastCode = $code;
+   continue;
+  }
+
+  return [
+   'ok' => false,
+   'error' => $errMsg,
+   'is_quota' => false,
+   'code' => $code
+  ];
  }
- $res = json_decode($resRaw ?: '', true);
- $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
- $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+
  return [
   'ok' => false,
-  'error' => $errMsg,
-  'is_quota' => $isQuota,
-  'code' => $code
+  'error' => $lastErr ?: 'Validation failed across all tested Gemini models.',
+  'is_quota' => false,
+  'code' => $lastCode
  ];
 }
 
@@ -153,7 +185,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
  }
 
  $isJson = !empty($options['json']);
- $model = $options['model'] ?? 'gemini-2.5-flash';
+ $preferredModel = $options['model'] ?? 'gemini-3.8-flash';
  $temperature = $options['temperature'] ?? 0.25;
 
  $generationConfig = ['temperature' => $temperature];
@@ -168,38 +200,55 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
   'generationConfig' => $generationConfig
  ], JSON_UNESCAPED_SLASHES);
 
+ $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash']));
  $errors = [];
- foreach ($keys as $idx => $key) {
-  $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
-  $ch = curl_init($url);
-  curl_setopt_array($ch, [
-   CURLOPT_POST => true,
-   CURLOPT_RETURNTRANSFER => true,
-   CURLOPT_TIMEOUT => 45,
-   CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
-   CURLOPT_POSTFIELDS => $payload
-  ]);
-  $raw = curl_exec($ch);
-  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-  curl_close($ch);
 
-  $res = json_decode($raw ?: '', true);
+ foreach ($keys as $idx => $key) {
   $masked = (strlen($key) > 10) ? substr($key, 0, 6) . '...' . substr($key, -4) : 'Key#' . ($idx + 1);
 
-  if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
-   return [
-    'ok' => true,
-    'text' => $res['candidates'][0]['content']['parts'][0]['text'],
-    'key_index' => $idx,
-    'key_used' => $masked,
-    'failovers' => $idx,
-    'data' => $res
-   ];
-  }
+  foreach ($modelsToTry as $model) {
+   $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
+   $ch = curl_init($url);
+   curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 45,
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+    CURLOPT_POSTFIELDS => $payload
+   ]);
+   $raw = curl_exec($ch);
+   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+   curl_close($ch);
 
-  $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
-  $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
-  $errors[] = "Key #" . ($idx + 1) . " (" . $masked . "): " . ($isQuota ? "Daily quota/rate limit exceeded (HTTP $code)" : $errMsg);
+   $res = json_decode($raw ?: '', true);
+
+   if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
+    return [
+     'ok' => true,
+     'text' => $res['candidates'][0]['content']['parts'][0]['text'],
+     'key_index' => $idx,
+     'key_used' => $masked,
+     'model_used' => $model,
+     'failovers' => $idx,
+     'data' => $res
+    ];
+   }
+
+   $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
+   $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+
+   if ($isQuota) {
+    $errors[] = "Key #" . ($idx + 1) . " ($masked): Daily quota exceeded (HTTP $code)";
+    break;
+   }
+
+   if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
+    continue;
+   }
+
+   $errors[] = "Key #" . ($idx + 1) . " ($masked): $errMsg";
+   break;
+  }
  }
 
  return [
@@ -440,7 +489,7 @@ try {
 
   if($test && !empty($finalKeys)){
    $testRes = testGeminiApiKey($finalKeys[0]);
-   if(!$testRes['ok']){
+   if(!$testRes['ok'] && empty($testRes['is_quota'])){
     out(['error' => 'Gemini test failed for primary key: ' . $testRes['error']], 400);
    }
   }

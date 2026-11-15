@@ -108,20 +108,29 @@ def test_gemini_key(key):
     key = (key or "").strip()
     if not key:
         return False, "Gemini API key cannot be empty."
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
-    payload = {
-        "contents": [{"parts": [{"text": "ping"}]}],
-        "generationConfig": {"maxOutputTokens": 2}
-    }
-    try:
-        r = requests.post(url, json=payload, timeout=10)
-        res = r.json()
-        if r.ok:
-            return True, "Gemini API Key is valid and active!"
-        err = res.get("error", {}).get("message", "Validation failed.")
-        return False, f"Gemini Error: {err}"
-    except Exception as e:
-        return False, f"Connection error: {e}"
+    models = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"]
+    last_err = ""
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        payload = {
+            "contents": [{"parts": [{"text": "ping"}]}],
+            "generationConfig": {"maxOutputTokens": 2}
+        }
+        try:
+            r = requests.post(url, json=payload, timeout=12)
+            res = r.json()
+            if r.ok:
+                return True, f"Gemini API Key is valid and active (via {model})!"
+            err = res.get("error", {}).get("message", "Validation failed.")
+            if r.status_code == 429 or "quota" in err.lower() or "resource_exhausted" in err.lower():
+                return False, f"Daily quota limit reached (HTTP 429). Key is valid! Failover key will be used."
+            if r.status_code == 404 or "no longer available" in err.lower() or "not found" in err.lower():
+                last_err = err
+                continue
+            return False, f"Gemini Error: {err}"
+        except Exception as e:
+            last_err = str(e)
+    return False, f"Connection/Validation error: {last_err}"
 
 def get_active_provider():
     if os.path.exists(CONFIG_PATH):
@@ -149,7 +158,7 @@ def set_active_provider(provider):
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
 
-def fetch_gemini_topic(api_key=None, model="gemini-2.5-flash"):
+def fetch_gemini_topic(api_key=None, model="gemini-3.8-flash"):
     """Generates an entertainment news post via Google Gemini API with automatic multi-key failover."""
     keys = [api_key.strip()] if api_key else get_gemini_keys()
     if not keys:
@@ -172,24 +181,39 @@ def fetch_gemini_topic(api_key=None, model="gemini-2.5-flash"):
         }
     }
 
+    models_to_try = [model, "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"]
+    seen_models = []
+    for m in models_to_try:
+        if m not in seen_models:
+            seen_models.append(m)
+
     errors = []
     for idx, key in enumerate(keys):
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-        try:
-            r = requests.post(url, json=payload, timeout=20)
-            if r.ok:
-                candidates = r.json().get("candidates", [])
-                if candidates:
-                    raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                    data = json.loads(raw_text)
-                    data['key_index'] = idx
-                    data['failovers'] = idx
-                    return data, None
-            
-            err = r.json().get("error", {}).get("message", r.text) if r.content else f"HTTP {r.status_code}"
-            errors.append(f"Key #{idx+1}: {err}")
-        except Exception as e:
-            errors.append(f"Key #{idx+1}: {e}")
+        for m in seen_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+            try:
+                r = requests.post(url, json=payload, timeout=25)
+                if r.ok:
+                    candidates = r.json().get("candidates", [])
+                    if candidates:
+                        raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        data = json.loads(raw_text)
+                        data['key_index'] = idx
+                        data['failovers'] = idx
+                        data['model_used'] = m
+                        return data, None
+                
+                err = r.json().get("error", {}).get("message", r.text) if r.content else f"HTTP {r.status_code}"
+                if r.status_code == 429 or "quota" in err.lower() or "resource_exhausted" in err.lower():
+                    errors.append(f"Key #{idx+1}: Daily quota exceeded (HTTP {r.status_code})")
+                    break
+                if r.status_code == 404 or "no longer available" in err.lower() or "not found" in err.lower():
+                    continue
+                errors.append(f"Key #{idx+1} ({m}): {err}")
+                break
+            except Exception as e:
+                errors.append(f"Key #{idx+1} ({m}): {e}")
+                break
 
     return None, f"All Gemini keys ({len(keys)}) failed: " + " | ".join(errors)
 

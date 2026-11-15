@@ -249,3 +249,4 @@ function sendTestNotificationEmail($config) {
     sendSmtpSocketMail($smtpHost, $smtpPort, $smtpUser, $smtpPass, $recipient, $subject, $body, 'VoxBulletin Studio');
     return ['ok' => true, 'message' => "Test email successfully sent to $recipient! Check your inbox."];
 }
+
