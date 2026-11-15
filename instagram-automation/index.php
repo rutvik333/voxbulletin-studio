@@ -1431,15 +1431,26 @@ async function fetchNews(){
     }
     articles.forEach((a,i)=>{
       const el=document.createElement('button');
+      el.type='button';
       el.className='story';
 
-      if(a.image){
+      // Use 300x300 compressed thumbnail for ultra-fast article list loading
+      const thumbUrl = a.thumbnail || (a.image ? (a.image.split('?')[0] + '?width=300&height=300&fit=crop&format=auto&quality=60') : '');
+      if(thumbUrl){
         const img=document.createElement('img');
         img.className='story-thumb';
-        img.src='api/index.php?action=image&url='+encodeURIComponent(a.image);
         img.loading='lazy';
         img.alt='thumbnail';
-        img.onerror=()=>{img.style.display='none';};
+        img.referrerPolicy='no-referrer';
+        img.onerror=()=>{
+          if(!img.dataset.proxied){
+            img.dataset.proxied='1';
+            img.src='api/index.php?action=image&url='+encodeURIComponent(thumbUrl);
+          }else{
+            img.style.display='none';
+          }
+        };
+        img.src=thumbUrl;
         el.append(img);
       }
 
@@ -1500,25 +1511,37 @@ async function selectStory(a,el){
     updateXCounter();
   }
 
-  // 3. Auto-apply Hero Image
-  sourceImage=a.image||'';
-  photo=null;
+  // 3. Auto-apply Hero Image (Main Full-Resolution for 1080x1350 canvas)
+  const fullImageUrl = (a.image || '').split('?')[0];
+  sourceImage = fullImageUrl;
+  photo = null;
   status('Auto-applying story & topic image...');
   render();
 
-  if(sourceImage && (sourceImage.startsWith('http://') || sourceImage.startsWith('https://'))){
-    const proxyUrl='api/index.php?action=image&url='+encodeURIComponent(sourceImage);
-    const img=new Image();
-    img.onload=()=>{
-      photo=img;
-      status('✓ Story, image and description auto-applied! Ready to export or draft.');
+  if(fullImageUrl && (fullImageUrl.startsWith('http://') || fullImageUrl.startsWith('https://'))){
+    const proxyUrl = 'api/index.php?action=image&url=' + encodeURIComponent(fullImageUrl);
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // Direct draw into canvas without tainting
+    img.onload = () => {
+      photo = img;
+      status('✓ Story, high-res image and description auto-applied! Ready to export or draft.');
       render();
     };
-    img.onerror=()=>{
-      status('Source image could not be loaded; you can upload an image manually.',true);
-      render();
+    img.onerror = () => {
+      // Fallback to server proxy if direct CORS fails
+      const fallbackImg = new Image();
+      fallbackImg.onload = () => {
+        photo = fallbackImg;
+        status('✓ Story, image and description auto-applied via proxy! Ready to export or draft.');
+        render();
+      };
+      fallbackImg.onerror = () => {
+        status('Source image could not be loaded; you can upload an image manually.', true);
+        render();
+      };
+      fallbackImg.src = proxyUrl;
     };
-    img.src=proxyUrl;
+    img.src = fullImageUrl;
   } else {
     render();
   }
@@ -1549,7 +1572,7 @@ async function generate(evt){
 }
 function loadFile(file,callback){if(!file)return;const url=URL.createObjectURL(file);const img=new Image();img.onload=()=>{callback(img);URL.revokeObjectURL(url);render()};img.onerror=()=>status('Could not read image',true);img.src=url}
 $('photoInput').onchange=e=>loadFile(e.target.files[0],i=>photo=i);$('logoInput').onchange=e=>loadFile(e.target.files[0],i=>logo=i);
-async function loadSourceImage(){if(!sourceImage)return status('No source image was found.',true);try{const r=await fetch('api/index.php?action=image&url='+encodeURIComponent(sourceImage));if(!r.ok)throw Error('Source image unavailable. Upload an image you have permission to use.');const blob=await r.blob();loadFile(new File([blob],'source-image.jpg',{type:blob.type}),i=>photo=i);status('Source image loaded for preview. Check reuse rights before publishing.')}catch(e){status(e.message,true)}}
+async function loadSourceImage(){if(!sourceImage)return status('No source image was found.',true);try{const cleanUrl=sourceImage.split('?')[0];const r=await fetch('api/index.php?action=image&url='+encodeURIComponent(cleanUrl));if(!r.ok)throw Error('Source image unavailable. Upload an image you have permission to use.');const blob=await r.blob();loadFile(new File([blob],'source-image.jpg',{type:blob.type}),i=>photo=i);status('Source image loaded for preview. Check reuse rights before publishing.')}catch(e){status(e.message,true)}}
 function wrapLines(ctx,text,maxWidth,maxLines=6){const words=text.trim().split(/\s+/).filter(Boolean);if(!words.length)return[];const lines=[];let cur=words[0];for(let i=1;i<words.length;i++){const test=cur+' '+words[i];if(ctx.measureText(test).width<=maxWidth){cur=test}else{lines.push(cur);cur=words[i];if(lines.length===maxLines-1){const rest=words.slice(i).join(' ');let last=rest;while(last&&ctx.measureText(last+'…').width>maxWidth){last=last.slice(0,-1)}lines.push(last===rest?last:(last+'…'));return lines}}}if(cur)lines.push(cur);return lines}
 function render(){
   const c=$('poster'),ctx=c.getContext('2d'),W=1080,H=1350;

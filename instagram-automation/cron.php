@@ -464,6 +464,7 @@ foreach ($xml->channel->item as $it) {
         $image = $im[1];
     }
     if (!$image) continue;
+    $image = strtok($image, '?') ?: $image; // Guarantee main uncompressed high-resolution image for poster canvas
 
     $desc = cleanText(strip_tags((string)$it->description));
 

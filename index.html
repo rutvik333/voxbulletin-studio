@@ -718,10 +718,11 @@
       updateXCounter();
 
       if (story.image) {
+        const fullImg = story.image.split('?')[0];
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => { currentPhoto = img; render(); };
-        img.src = story.image;
+        img.src = fullImg;
       }
       render();
     }
@@ -736,7 +737,9 @@
 
         const img = document.createElement('img');
         img.className = 'story-thumb';
-        img.src = s.image;
+        const cleanImg = (s.image || '').split('?')[0];
+        img.src = cleanImg ? (cleanImg + '?width=300&height=300&fit=crop&format=auto&quality=60') : '';
+        img.loading = 'lazy';
 
         const meta = document.createElement('div');
         meta.className = 'story-meta';

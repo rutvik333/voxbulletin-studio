@@ -276,13 +276,18 @@ try {
      $desc=preg_replace('/The post .* appeared first on FandomWire\.\s*$/i','',$desc);
      $desc=trim($desc);
 
+     // High-resolution main image for canvas vs 300x300 compressed thumbnail for story list
+     $mainImage = $image ? (strtok($image, '?') ?: $image) : '';
+     $thumbImage = $mainImage ? ($mainImage . '?width=300&height=300&fit=crop&format=auto&quality=60') : '';
+
      $timeStr=date('g:i A', $pubTs);
      if(strlen($title)>10 && !isset($items[$url])){
       $items[$url]=[
        'title'=>$title,
        'url'=>$url,
        'description'=>$desc,
-       'image'=>$image,
+       'image'=>$mainImage,
+       'thumbnail'=>$thumbImage,
        'time'=>$timeStr,
        'date_badge'=>'TODAY '.$timeStr,
        'pubDate'=>$pubDateStr
@@ -327,7 +332,9 @@ try {
     $image=meta($d,'og:image');$title=cleanFandomWire(meta($d,'og:title'));$date=meta($d,'article:published_time');
    } catch(Throwable $e){}
   }
-  out(['title'=>$title,'description'=>$desc,'image'=>$image,'date'=>$date,'url'=>$url]);
+  $mainImage = $image ? (strtok($image, '?') ?: $image) : '';
+  $thumbImage = $mainImage ? ($mainImage . '?width=300&height=300&fit=crop&format=auto&quality=60') : '';
+  out(['title'=>$title,'description'=>$desc,'image'=>$mainImage,'thumbnail'=>$thumbImage,'date'=>$date,'url'=>$url]);
  }
  if($action==='image'){
   $url=$_GET['url']??'';$p=parse_url($url);$host=strtolower($p['host']??'');
@@ -345,6 +352,9 @@ try {
   $bin=curl_exec($ch);$code=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
   if($code!==200||!$bin||strlen($bin)>10000000||!($info=@getimagesizefromstring($bin)))out(['error'=>'Could not fetch source image'],422);
   if(!in_array($info[2],[IMAGETYPE_JPEG,IMAGETYPE_PNG,IMAGETYPE_WEBP],true))out(['error'=>'Unsupported image type'],422);
+  header('Access-Control-Allow-Origin: *');
+  header('Cache-Control: public, max-age=86400');
+  header('Expires: ' . gmdate('D, d M Y H:i:s \G\M\T', time() + 86400));
   header('Content-Type: '.$info['mime']);echo $bin;exit;
  }
  if($action==='test_gemini_key'){

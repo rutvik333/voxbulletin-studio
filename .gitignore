@@ -12,6 +12,7 @@ storage/*.sqlite
 storage/*.sqlite3
 storage/*.db
 storage/posts/
+*.db
 
 # Python cache & virtual environments
 __pycache__/
