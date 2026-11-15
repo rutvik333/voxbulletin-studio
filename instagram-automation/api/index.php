@@ -8,6 +8,7 @@ header('Cache-Control: no-store');
 $configFile=dirname(__DIR__).'/config.php';
 if (!is_file($configFile)) { http_response_code(503); echo json_encode(['error'=>'Missing config.php. See README.']); exit; }
 $c=require $configFile;
+require_once dirname(__DIR__).'/mailer.php';
 function out($data,$code=200){http_response_code($code);echo json_encode($data,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);exit;}
 function db(){
  global $c;
@@ -397,6 +398,12 @@ try {
    'buffer_masked' => $bufMasked,
    'has_buffer_token' => !empty($bufToken),
    'public_base_url' => $c['public_base_url'] ?? '',
+   'email_notifications_enabled' => !empty($c['email_notifications_enabled']),
+   'notification_email' => $c['notification_email'] ?? 'bulletinvox@gmail.com',
+   'smtp_host' => $c['smtp_host'] ?? 'smtp.gmail.com',
+   'smtp_port' => (int)($c['smtp_port'] ?? 465),
+   'smtp_user' => $c['smtp_user'] ?? 'bulletinvox@gmail.com',
+   'has_smtp_pass' => !empty($c['smtp_pass']),
    'meta_access_token' => $c['meta_access_token'] ?? '',
    'meta_instagram_id' => $c['meta_instagram_id'] ?? '',
    'meta_facebook_page_id' => $c['meta_facebook_page_id'] ?? ''
@@ -423,6 +430,12 @@ try {
   $metaToken = trim((string)($in['meta_access_token'] ?? ''));
   $metaIg = trim((string)($in['meta_instagram_id'] ?? ''));
   $metaFb = trim((string)($in['meta_facebook_page_id'] ?? ''));
+  $emailEnabled = isset($in['email_notifications_enabled']) ? !empty($in['email_notifications_enabled']) : (!empty($c['email_notifications_enabled']));
+  $notifyEmail = isset($in['notification_email']) ? trim((string)$in['notification_email']) : ($c['notification_email'] ?? 'bulletinvox@gmail.com');
+  $smtpHost = isset($in['smtp_host']) ? trim((string)$in['smtp_host']) : ($c['smtp_host'] ?? 'smtp.gmail.com');
+  $smtpPort = isset($in['smtp_port']) ? (int)$in['smtp_port'] : (int)($c['smtp_port'] ?? 465);
+  $smtpUser = isset($in['smtp_user']) ? trim((string)$in['smtp_user']) : ($c['smtp_user'] ?? 'bulletinvox@gmail.com');
+  $smtpPass = (isset($in['smtp_pass']) && trim((string)$in['smtp_pass']) !== '') ? str_replace(' ', '', trim((string)$in['smtp_pass'])) : ($c['smtp_pass'] ?? 'pvtvemnrwyokncxb');
   $test = !empty($in['test']);
 
   if($test && !empty($finalKeys)){
@@ -440,9 +453,7 @@ try {
   $finalMetaFb = ($metaFb !== '') ? $metaFb : ($c['meta_facebook_page_id'] ?? '');
 
   $configFile = dirname(__DIR__).'/config.php';
-  $content = "<?php
-return [
-"
+  $content = "<?php\nreturn [\n"
    . "  'admin_password' => " . var_export($curPass, true) . ",\n"
    . "  'gemini_api_keys' => " . var_export($finalKeys, true) . ",\n"
    . "  'gemini_api_key' => " . var_export($finalKeys[0] ?? '', true) . ",\n"
@@ -451,6 +462,13 @@ return [
    . "  'buffer_client_secret' => " . var_export($c['buffer_client_secret'] ?? '', true) . ",\n"
    . "  'buffer_org_id' => " . var_export($c['buffer_org_id'] ?? '', true) . ",\n"
    . "  'public_base_url' => " . var_export($finalPub, true) . ",\n"
+   . "  'email_notifications_enabled' => " . var_export($emailEnabled, true) . ",\n"
+   . "  'notification_email' => " . var_export($notifyEmail, true) . ",\n"
+   . "  'smtp_host' => " . var_export($smtpHost, true) . ",\n"
+   . "  'smtp_port' => " . var_export($smtpPort, true) . ",\n"
+   . "  'smtp_user' => " . var_export($smtpUser, true) . ",\n"
+   . "  'smtp_pass' => " . var_export($smtpPass, true) . ",\n"
+   . "  'smtp_encryption' => 'ssl',\n"
    . "  'meta_access_token' => " . var_export($finalMetaTok, true) . ",\n"
    . "  'meta_instagram_id' => " . var_export($finalMetaIg, true) . ",\n"
    . "  'meta_facebook_page_id' => " . var_export($finalMetaFb, true) . ",\n"
@@ -466,6 +484,12 @@ return [
   $c['gemini_api_key'] = $finalKeys[0] ?? '';
   $c['buffer_access_token'] = $finalBuf;
   $c['public_base_url'] = $finalPub;
+  $c['email_notifications_enabled'] = $emailEnabled;
+  $c['notification_email'] = $notifyEmail;
+  $c['smtp_host'] = $smtpHost;
+  $c['smtp_port'] = $smtpPort;
+  $c['smtp_user'] = $smtpUser;
+  $c['smtp_pass'] = $smtpPass;
   $c['meta_access_token'] = $finalMetaTok;
   $c['meta_instagram_id'] = $finalMetaIg;
   $c['meta_facebook_page_id'] = $finalMetaFb;
@@ -476,6 +500,22 @@ return [
    'keys_count' => count($finalKeys),
    'gemini_keys' => $finalKeys
   ]);
+ }
+ if($action==='test_email'){
+  csrf();
+  $in = json_decode(file_get_contents('php://input'), true) ?: [];
+  $testConfig = $c;
+  if(!empty($in['notification_email'])) $testConfig['notification_email'] = trim((string)$in['notification_email']);
+  if(!empty($in['smtp_host'])) $testConfig['smtp_host'] = trim((string)$in['smtp_host']);
+  if(!empty($in['smtp_port'])) $testConfig['smtp_port'] = (int)$in['smtp_port'];
+  if(!empty($in['smtp_user'])) $testConfig['smtp_user'] = trim((string)$in['smtp_user']);
+  if(!empty($in['smtp_pass'])) $testConfig['smtp_pass'] = str_replace(' ', '', trim((string)$in['smtp_pass']));
+  try {
+   $res = sendTestNotificationEmail($testConfig);
+   out(['ok' => true, 'message' => $res['message']]);
+  } catch(Throwable $e) {
+   out(['error' => 'SMTP Test Failed: ' . $e->getMessage()], 400);
+  }
  }
  if($action==='draft'){
   csrf();$in=json_decode(file_get_contents('php://input'),true)?:[];
@@ -995,6 +1035,20 @@ return [
   $anyPublished = false;
   foreach($results as $r){
    if($r['status'] === 'published') $anyPublished = true;
+  }
+
+  // Dispatch branded email notification if any channel published successfully
+  if($anyPublished && !empty($c['email_notifications_enabled'])){
+   sendPublishNotificationEmail([
+    'headline' => $headline,
+    'description' => $description,
+    'channels' => $results,
+    'image_url' => $postImageUrl,
+    'article_title' => $sourceTitle,
+    'article_url' => $url,
+    'priority' => 'Manual Studio Publication',
+    'published_at' => date('Y-m-d H:i:s')
+   ], $c);
   }
 
   out([

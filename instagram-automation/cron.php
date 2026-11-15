@@ -722,6 +722,22 @@ $logStmt = $pdo->prepare('INSERT INTO automation_logs (article_title, article_ur
 $summaryMsg = 'Successfully auto-selected and published across: ' . ($chanStr ?: 'None') . $keyUsedInfo;
 $logStmt->execute([$chosen['title'], $chosen['url'], $chosen['category'], $chosen['score'], $hl, $fileName, $chanStr, 'success', $summaryMsg]);
 
+// 12. Send Email Notification (Gmail SMTP)
+require_once __DIR__ . '/mailer.php';
+$emailRes = sendPublishNotificationEmail([
+    'headline' => $hl,
+    'description' => $desc,
+    'channels' => $results,
+    'image_url' => $postImageUrl,
+    'article_title' => $chosen['title'],
+    'article_url' => $chosen['url'],
+    'priority' => $chosen['category'],
+    'published_at' => date('Y-m-d H:i:s')
+], $c);
+if (!empty($emailRes['ok']) && $isCli) {
+    echo "Email Notification: Sent to " . $emailRes['recipient'] . "\n";
+}
+
 $outputData = [
     'ok' => true,
     'post_id' => $newPostId,

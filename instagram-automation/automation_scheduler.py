@@ -45,3 +45,4 @@ while True:
         last_ran_hour = -1
 
     time.sleep(30)
+

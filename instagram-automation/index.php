@@ -297,7 +297,68 @@ input:checked + .slider:before{transform:translateX(20px)}
   </form>
 </div>
 
-<!-- Section 3: Connected Channels List -->
+<!-- Section 3: Post Email Notifications (Gmail SMTP) -->
+<div class="panel" style="max-width:760px;margin:24px auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;background:#991b1b;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">📧</div>
+      <div>
+        <h2 style="font-size:20px;margin:0 0 4px">Post Email Notifications (Gmail SMTP)</h2>
+        <div class="muted">Receive instant branded email notifications whenever a post is published live.</div>
+      </div>
+    </div>
+    <span id="smtpPill" class="pill">● ACTIVE &amp; READY</span>
+  </div>
+  <div class="divider"></div>
+
+  <form id="emailSettingsForm" onsubmit="saveEmailSettings(event)">
+    <div style="margin-bottom:14px;background:#0d1829;padding:12px 16px;border-radius:8px;border:1px solid #1c2c47">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700;font-size:14px;color:#fff">
+        <input type="checkbox" id="emailNotifyToggle" style="width:18px;height:18px;accent-color:#38bdf8" checked>
+        Send me an email notification whenever a post is published (Manual &amp; 3x/Day Cron)
+      </label>
+    </div>
+
+    <div class="field">
+      <label>RECIPIENT EMAIL ADDRESS</label>
+      <input id="notifyEmailInput" type="email" placeholder="bulletinvox@gmail.com" value="bulletinvox@gmail.com">
+      <p class="muted" style="margin-top:5px;font-size:12px">The email inbox where you want to receive publication notifications.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+      <div class="field">
+        <label>GMAIL SMTP SERVER</label>
+        <input id="smtpHostInput" type="text" placeholder="smtp.gmail.com" value="smtp.gmail.com">
+      </div>
+      <div class="field">
+        <label>SMTP PORT</label>
+        <input id="smtpPortInput" type="number" placeholder="465" value="465">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>GMAIL SENDER ADDRESS</label>
+      <input id="smtpUserInput" type="email" placeholder="bulletinvox@gmail.com" value="bulletinvox@gmail.com">
+    </div>
+
+    <div class="field">
+      <label>GMAIL 16-CHARACTER APP PASSWORD</label>
+      <div class="inline">
+        <input id="smtpPassInput" type="password" placeholder="•••••••••••••••• (Saved)">
+        <button type="button" class="btn alt small" id="toggleSmtpPass" onclick="toggleKeyVis('smtpPassInput', 'toggleSmtpPass')">SHOW</button>
+      </div>
+      <p class="muted" style="margin-top:6px;font-size:11px">Generated in Google Account &rarr; Security &rarr; 2-Step Verification &rarr; App Passwords.</p>
+    </div>
+
+    <div class="actions" style="margin-top:18px">
+      <button type="button" class="btn blue" onclick="sendTestEmailNow()" id="testEmailBtn">✉ Send Test Email</button>
+      <button type="submit" class="btn alt">Save Email Settings</button>
+    </div>
+    <div id="emailMsg" class="status"></div>
+  </form>
+</div>
+
+<!-- Section 4: Connected Channels List -->
 <div class="panel" style="max-width:760px;margin:24px auto">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div>
@@ -1256,6 +1317,29 @@ async function loadSettings(){
         bp.style.background='#382215';bp.style.borderColor='#784920';bp.style.color='#ffd699';
       }
     }
+
+    // Email notification settings
+    if($('emailNotifyToggle')) $('emailNotifyToggle').checked = !!j.email_notifications_enabled;
+    if(j.notification_email && $('notifyEmailInput')) $('notifyEmailInput').value = j.notification_email;
+    if(j.smtp_host && $('smtpHostInput')) $('smtpHostInput').value = j.smtp_host;
+    if(j.smtp_port && $('smtpPortInput')) $('smtpPortInput').value = j.smtp_port;
+    if(j.smtp_user && $('smtpUserInput')) $('smtpUserInput').value = j.smtp_user;
+    if(j.has_smtp_pass && $('smtpPassInput')) $('smtpPassInput').placeholder = '•••••••••••••••• (Saved)';
+
+    // SMTP pill
+    const sp = $('smtpPill');
+    if(sp){
+      if(j.email_notifications_enabled && j.smtp_user && j.has_smtp_pass){
+        sp.textContent = '● ACTIVE & READY';
+        sp.style.background = '#123528'; sp.style.borderColor = '#245a45'; sp.style.color = '#71e5aa';
+      } else if(j.smtp_user) {
+        sp.textContent = '● CONFIGURED (DISABLED)';
+        sp.style.background = '#1e293b'; sp.style.borderColor = '#334155'; sp.style.color = '#94a3b8';
+      } else {
+        sp.textContent = '● NOT CONFIGURED';
+        sp.style.background = '#382215'; sp.style.borderColor = '#784920'; sp.style.color = '#ffd699';
+      }
+    }
   }catch(e){console.error('loadSettings error:', e)}
 }
 
@@ -1345,6 +1429,71 @@ async function saveBufferSettings(e){
   }catch(err){
     msg.textContent = '✗ ' + err.message;
     msg.className = 'status error';
+  }
+}
+
+async function saveEmailSettings(e){
+  if(e && e.preventDefault) e.preventDefault();
+  const enabled = $('emailNotifyToggle').checked;
+  const notifyEmail = $('notifyEmailInput').value.trim();
+  const smtpHost = $('smtpHostInput').value.trim();
+  const smtpPort = parseInt($('smtpPortInput').value, 10) || 465;
+  const smtpUser = $('smtpUserInput').value.trim();
+  const smtpPass = $('smtpPassInput').value.trim();
+  const msg = $('emailMsg');
+
+  try{
+    const body = {
+      email_notifications_enabled: enabled,
+      notification_email: notifyEmail,
+      smtp_host: smtpHost,
+      smtp_port: smtpPort,
+      smtp_user: smtpUser
+    };
+    if(smtpPass) body.smtp_pass = smtpPass;
+
+    const res = await req('save_settings', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+    msg.textContent = '✓ Email notification settings saved!';
+    msg.className = 'status';
+    await loadSettings();
+  }catch(err){
+    msg.textContent = '✗ ' + err.message;
+    msg.className = 'status error';
+  }
+}
+
+async function sendTestEmailNow(){
+  const btn = $('testEmailBtn');
+  const msg = $('emailMsg');
+  btn.disabled = true;
+  btn.textContent = '✉ Sending Test Email...';
+  msg.textContent = 'Connecting to Gmail SMTP server (smtp.gmail.com:465)...';
+  msg.className = 'status';
+
+  const body = {
+    notification_email: $('notifyEmailInput').value.trim(),
+    smtp_host: $('smtpHostInput').value.trim(),
+    smtp_port: parseInt($('smtpPortInput').value, 10) || 465,
+    smtp_user: $('smtpUserInput').value.trim(),
+    smtp_pass: $('smtpPassInput').value.trim()
+  };
+
+  try{
+    const res = await req('test_email', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+    msg.textContent = '✓ ' + res.message;
+    msg.className = 'status';
+  }catch(err){
+    msg.textContent = '✗ ' + err.message;
+    msg.className = 'status error';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '✉ Send Test Email';
   }
 }
 
