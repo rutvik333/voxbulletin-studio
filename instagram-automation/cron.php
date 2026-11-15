@@ -305,7 +305,7 @@ if (!function_exists('callGeminiWithFailover')) {
             'generationConfig' => $generationConfig
         ], JSON_UNESCAPED_SLASHES);
 
-        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash']));
+        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-3.5-flash']));
         $errors = [];
 
         foreach ($keys as $idx => $key) {

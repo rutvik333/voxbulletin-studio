@@ -899,7 +899,7 @@
       const headline = $('headlineInput').value;
       const prompt = `You are a social editor for VoxBulletin. Write an entertainment news post for: "${headline}". Respond ONLY in valid JSON matching: {"headline": "...", "description": "...", "caption": "..."}`;
       const errors = [];
-      const modelsToTry = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+      const modelsToTry = ['gemini-3.8-flash', 'gemini-3.5-flash'];
 
       for (let i = 0; i < keys.length; i++) {
         const currentKey = keys[i];

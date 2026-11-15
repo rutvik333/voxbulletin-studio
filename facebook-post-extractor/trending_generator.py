@@ -108,16 +108,12 @@ def test_gemini_key(key):
     key = (key or "").strip()
     if not key:
         return False, "Gemini API key cannot be empty."
-    models = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"]
+    models = ["gemini-3.8-flash", "gemini-3.5-flash"]
     last_err = ""
     for model in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-        payload = {
-            "contents": [{"parts": [{"text": "ping"}]}],
-            "generationConfig": {"maxOutputTokens": 2}
-        }
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}?key={key}"
         try:
-            r = requests.post(url, json=payload, timeout=12)
+            r = requests.get(url, timeout=10)
             res = r.json()
             if r.ok:
                 return True, f"Gemini API Key is valid and active (via {model})!"
@@ -181,7 +177,7 @@ def fetch_gemini_topic(api_key=None, model="gemini-3.8-flash"):
         }
     }
 
-    models_to_try = [model, "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"]
+    models_to_try = [model, "gemini-3.8-flash", "gemini-3.5-flash"]
     seen_models = []
     for m in models_to_try:
         if m not in seen_models:

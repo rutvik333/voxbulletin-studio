@@ -115,24 +115,19 @@ function testGeminiApiKey($key) {
   return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
  }
 
- $modelsToTry = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+ $modelsToTry = ['gemini-3.8-flash', 'gemini-3.5-flash'];
  $lastErr = '';
  $lastCode = 0;
 
  foreach ($modelsToTry as $model) {
-  $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
-  $testPayload = json_encode([
-   'contents' => [['parts' => [['text' => 'ping']]]],
-   'generationConfig' => ['maxOutputTokens' => 2]
-  ], JSON_UNESCAPED_SLASHES);
+  $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . '?key=' . urlencode($key);
 
   $ch = curl_init($url);
   curl_setopt_array($ch, [
-   CURLOPT_POST => true,
+   CURLOPT_HTTPGET => true,
    CURLOPT_RETURNTRANSFER => true,
-   CURLOPT_TIMEOUT => 10,
-   CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
-   CURLOPT_POSTFIELDS => $testPayload
+   CURLOPT_TIMEOUT => 15,
+   CURLOPT_HTTPHEADER => ['User-Agent: VoxBulletin/2.0']
   ]);
   $resRaw = curl_exec($ch);
   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -156,7 +151,7 @@ function testGeminiApiKey($key) {
    ];
   }
 
-  if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false || stripos($errMsg, 'timed out') !== false) {
+  if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
    $lastErr = $errMsg;
    $lastCode = $code;
    continue;
@@ -172,7 +167,7 @@ function testGeminiApiKey($key) {
 
  return [
   'ok' => false,
-  'error' => $lastErr ?: 'Validation failed across all tested Gemini models.',
+  'error' => $lastErr ?: 'Validation failed across tested Gemini models.',
   'is_quota' => false,
   'code' => $lastCode
  ];
@@ -200,7 +195,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
   'generationConfig' => $generationConfig
  ], JSON_UNESCAPED_SLASHES);
 
- $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash']));
+ $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.8-flash', 'gemini-3.5-flash']));
  $errors = [];
 
  foreach ($keys as $idx => $key) {
