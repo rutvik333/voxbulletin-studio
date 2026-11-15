@@ -71,7 +71,7 @@ input:checked + .slider:before{transform:translateX(20px)}
 .live-api-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:0.5px;background:#103b2b;color:#4ade80;border:1px solid #166534}
 </style></head><body>
 <div id="login" class="login <?= $authed?'hide':'' ?>"><div class="brand">VOX <span>BULLETIN</span></div><p class="sub">CONTENT STUDIO</p><h1>Welcome back</h1><p class="muted">Sign in to your private news creation dashboard.</p><form id="loginForm"><div class="field"><label>ADMIN PASSWORD</label><input id="password" type="password" required autocomplete="current-password"></div><button class="btn" style="width:100%">Sign in</button></form><div id="loginErr" class="status"></div></div>
-<div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><h2>02 / Generate content</h2><div class="muted">Gemini writes an original draft from the selected source excerpt. Review before saving.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button class="btn blue" onclick="generate()" id="generateBtn">✦ Generate with Gemini</button><button class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
+<div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navAutomation" onclick="showPage('automation')">⚡ 3x/Day Auto-Post</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><h2>02 / Generate content</h2><div class="muted">Gemini writes an original draft from the selected source excerpt. Review before saving.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button class="btn blue" onclick="generate()" id="generateBtn">✦ Generate with Gemini</button><button class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
 <div class="crosspost-box">
   <div class="crosspost-title">
     <h3><span>🚀</span> Cross-Post to Social Accounts</h3>
@@ -87,7 +87,85 @@ input:checked + .slider:before{transform:translateX(20px)}
   <button class="btn alt" type="button" onclick="shuffleTheme()">🎨 Shuffle Colors</button>
   <button class="btn alt" onclick="save()" id="saveBtn">💾 Save to Library</button>
 </div>
-<div id="status" class="notice">Select any news story from the list — title, description, and hero image will auto-apply instantly!</div></div></section></div><div id="libraryPage" class="hide"><div class="actions" style="margin-top:25px"><button class="btn blue" onclick="loadPosts()">↻ Refresh library</button></div><div id="postGrid" class="gridposts"></div></div><div id="settingsPage" class="hide">
+<div id="status" class="notice">Select any news story from the list — title, description, and hero image will auto-apply instantly!</div></div></section></div><div id="libraryPage" class="hide"><div class="actions" style="margin-top:25px"><button class="btn blue" onclick="loadPosts()">↻ Refresh library</button></div><div id="postGrid" class="gridposts"></div></div><div id="automationPage" class="hide">
+  <div class="panel" style="max-width:880px;margin:24px auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="font-size:22px;margin:0 0 6px">⚡ 3x/Day Autonomous Publishing Engine</h2>
+        <div class="muted">Fully automated workflow: Fetches today's news &rarr; Prioritizes Marvel & DC &rarr; Gemini AI rewrite &rarr; Generates 1080×1350 branded graphic &rarr; Publishes live to Instagram, Facebook & X.</div>
+      </div>
+      <span class="pill" style="background:#103b2b;color:#4ade80;border:1px solid #166534">● SCHEDULER ACTIVE</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px;margin-top:20px">
+      <div style="background:#091c34;border:1px solid #1a3962;border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">🌅</span>
+          <div>
+            <div style="font-weight:800;font-size:14px;color:#ffd12a">SLOT 01 / MORNING</div>
+            <div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px">9:00 AM</div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:8px">Top Marvel/DC breaking news from the morning feed.</div>
+      </div>
+
+      <div style="background:#091c34;border:1px solid #1a3962;border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">☀️</span>
+          <div>
+            <div style="font-weight:800;font-size:14px;color:#00d2ff">SLOT 02 / AFTERNOON</div>
+            <div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px">2:00 PM</div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:8px">Midday trending entertainment & franchise updates.</div>
+      </div>
+
+      <div style="background:#091c34;border:1px solid #1a3962;border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">🌙</span>
+          <div>
+            <div style="font-weight:800;font-size:14px;color:#f472b6">SLOT 03 / NIGHT</div>
+            <div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px">8:00 PM</div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:8px">Prime-time evening blockbuster & trailer highlights.</div>
+      </div>
+    </div>
+
+    <div style="background:#051224;border:1px solid #1e3a5f;border-radius:10px;padding:18px;margin-top:20px">
+      <div style="font-weight:800;font-size:13px;letter-spacing:0.5px;color:#fff;margin-bottom:10px">🎯 PRIORITY SCORING & ZERO-DUPLICATE GUARD</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:#94a3b8">
+        <div><b style="color:#ffd12a">Tier 1 — Marvel & DC Universe (Score 100):</b> Matches Marvel, MCU, Avengers, Spider-Man, Deadpool, Wolverine, Batman, Superman, DCU, etc.</div>
+        <div><b style="color:#00d2ff">Tier 2 — Major Franchises (Score 50):</b> Star Wars, Dragon Ball, Anime, GTA 6, Gaming, Lord of the Rings, HBO/Netflix hits.</div>
+        <div><b style="color:#71e5aa">Tier 3 — General Entertainment (Score 10):</b> Selected only when no unscored Tier 1/2 articles remain.</div>
+        <div><b style="color:#f87171">🛡 Zero-Duplicate Guarantee:</b> Every published article URL is permanently recorded in your database; previously published stories are automatically skipped.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap">
+      <button class="btn blue" style="padding:10px 22px;font-size:14px;font-weight:700" onclick="runAutomationCycle()" id="autoRunBtn">⚡ Run Automation Cycle Now</button>
+      <button class="btn alt" onclick="loadAutomationLogs()">↻ Refresh Logs</button>
+      <div id="autoRunStatus" class="muted" style="font-size:12px">Ready. Click to trigger an immediate automated fetch, draft, and publish.</div>
+    </div>
+
+    <div style="background:#0a1729;border:1px solid #1c3558;border-radius:10px;padding:16px;margin-top:24px">
+      <div style="font-weight:700;font-size:13px;color:#fff;display:flex;align-items:center;gap:8px">
+        <span>⚙</span> How to Enable 3x/Day Cron on Hostinger
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:6px;line-height:1.5">
+        In Hostinger hPanel &rarr; <b>Advanced</b> &rarr; <b>Cron Jobs</b>, add a custom cron job:
+        <div style="background:#040c18;padding:8px 12px;border-radius:6px;font-family:monospace;color:#ffd12a;margin-top:6px;user-select:all">
+          0 9,14,20 * * * /usr/bin/php /home/username/public_html/cron.php
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:28px">
+      <h3 style="font-size:16px;color:#fff;margin-bottom:12px">📋 Automation Execution History</h3>
+      <div id="automationLogsList" style="display:flex;flex-direction:column;gap:10px">Loading history...</div>
+    </div>
+  </div>
+</div><div id="settingsPage" class="hide">
 
 <!-- Section 1: AI Settings -->
 <div class="panel" style="max-width:760px;margin:24px auto">
@@ -827,13 +905,150 @@ async function publishSelected(){
 function showPage(page){
   $('createPage').classList.toggle('hide',page!=='create');
   $('libraryPage').classList.toggle('hide',page!=='library');
+  $('automationPage').classList.toggle('hide',page!=='automation');
   $('settingsPage').classList.toggle('hide',page!=='settings');
-  $('pageTitle').textContent=page==='create'?'Create news post':(page==='library'?'Saved posts':'AI & Studio Settings');
+  $('pageTitle').textContent=page==='create'?'Create news post':(page==='library'?'Saved posts':(page==='automation'?'⚡ 3x/Day Automation Engine':'AI & Studio Settings'));
   $('navCreate').classList.toggle('active',page==='create');
   $('navLibrary').classList.toggle('active',page==='library');
+  $('navAutomation').classList.toggle('active',page==='automation');
   $('navSettings').classList.toggle('active',page==='settings');
   if(page==='library')loadPosts();
+  if(page==='automation')loadAutomationLogs();
   if(page==='settings'){loadSettings();loadChannels();}
+}
+
+async function loadAutomationLogs(){
+  const container = $('automationLogsList');
+  if(!container) return;
+  container.innerHTML = '<div class="muted">Loading automation history...</div>';
+  try{
+    const res = await req('cron_logs');
+    const logs = res.logs || [];
+    if(!logs.length){
+      container.innerHTML = '<div class="muted">No automation runs recorded yet. Click "Run Automation Cycle Now" above to trigger your first run!</div>';
+      return;
+    }
+    container.replaceChildren();
+    logs.forEach(l => {
+      const card = document.createElement('div');
+      card.style.background = '#091c34';
+      card.style.border = '1px solid #1a3962';
+      card.style.borderRadius = '8px';
+      card.style.padding = '12px 16px';
+      card.style.display = 'flex';
+      card.style.justifyContent = 'space-between';
+      card.style.alignItems = 'center';
+      card.style.flexWrap = 'wrap';
+      card.style.gap = '12px';
+
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.flexDirection = 'column';
+      left.style.gap = '4px';
+
+      const catBadge = document.createElement('span');
+      catBadge.style.fontSize = '10px';
+      catBadge.style.fontWeight = '800';
+      catBadge.style.padding = '2px 8px';
+      catBadge.style.borderRadius = '4px';
+      catBadge.style.display = 'inline-block';
+      catBadge.style.width = 'fit-content';
+      if(l.priority_score >= 90){
+        catBadge.style.background = '#381f15';
+        catBadge.style.border = '1px solid #783510';
+        catBadge.style.color = '#ffd12a';
+      } else if(l.priority_score >= 50){
+        catBadge.style.background = '#0c2e47';
+        catBadge.style.border = '1px solid #0369a1';
+        catBadge.style.color = '#38bdf8';
+      } else {
+        catBadge.style.background = '#132b49';
+        catBadge.style.border = '1px solid #1e3a5f';
+        catBadge.style.color = '#94a3b8';
+      }
+      catBadge.textContent = (l.priority_category || 'General') + ' (Score ' + (l.priority_score || 0) + ')';
+
+      const title = document.createElement('div');
+      title.style.fontWeight = '700';
+      title.style.fontSize = '14px';
+      title.style.color = '#fff';
+      title.textContent = l.article_title || l.headline || 'Automated Run';
+
+      const meta = document.createElement('div');
+      meta.className = 'muted';
+      meta.style.fontSize = '11px';
+      meta.textContent = l.created_at + ' • ' + (l.message || '');
+
+      left.append(catBadge, title, meta);
+
+      const right = document.createElement('div');
+      right.style.display = 'flex';
+      right.style.alignItems = 'center';
+      right.style.gap = '10px';
+
+      if(l.channels_published){
+        l.channels_published.split(',').filter(Boolean).forEach(ch => {
+          const pill = document.createElement('span');
+          pill.className = 'pill-ch';
+          pill.textContent = (PLATFORMS_META[ch]||{}).name || ch;
+          right.append(pill);
+        });
+      }
+
+      const statusTag = document.createElement('span');
+      statusTag.style.fontSize = '11px';
+      statusTag.style.fontWeight = '700';
+      statusTag.style.padding = '3px 8px';
+      statusTag.style.borderRadius = '4px';
+      if(l.status === 'success'){
+        statusTag.style.background = '#103b2b';
+        statusTag.style.color = '#4ade80';
+        statusTag.textContent = '✓ Published';
+      } else if(l.status === 'skipped'){
+        statusTag.style.background = '#282b15';
+        statusTag.style.color = '#facc15';
+        statusTag.textContent = '⚡ Skipped (No Dupes)';
+      } else {
+        statusTag.style.background = '#3b1515';
+        statusTag.style.color = '#f87171';
+        statusTag.textContent = '✗ ' + (l.status || 'Failed');
+      }
+      right.append(statusTag);
+
+      card.append(left, right);
+      container.append(card);
+    });
+  }catch(err){
+    container.innerHTML = '<div style="color:#ffb3ba">Error loading logs: ' + err.message + '</div>';
+  }
+}
+
+async function runAutomationCycle(){
+  const btn = $('autoRunBtn');
+  const statusEl = $('autoRunStatus');
+  btn.disabled = true;
+  btn.textContent = '⚡ Running Automation Cycle...';
+  statusEl.style.color = '#ffd12a';
+  statusEl.textContent = 'Fetching today\'s news -> Checking Marvel/DC priority -> Gemini AI rewrite -> Rendering 1080x1350 graphic -> Publishing to Instagram, Facebook & X...';
+
+  try{
+    const res = await req('cron');
+    statusEl.style.color = '#71e5aa';
+    if(res.status === 'skipped'){
+      statusEl.textContent = '✓ Run complete: ' + res.message;
+    } else {
+      statusEl.textContent = '✓ Success! Picked: "' + (res.selected_title || '') + '" (' + (res.priority_category || '') + ') and published across ' + (res.channels_published ? res.channels_published.join(', ') : 'all channels') + '!';
+    }
+    loadAutomationLogs();
+    status('✓ Automation cycle completed successfully!');
+  }catch(err){
+    statusEl.style.color = '#ffb3ba';
+    statusEl.textContent = 'Automation error: ' + err.message;
+    status(err.message, true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '⚡ Run Automation Cycle Now';
+  }
 }
 
 async function loadSettings(){

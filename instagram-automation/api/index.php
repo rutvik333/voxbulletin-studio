@@ -85,6 +85,14 @@ if($action==='session')out(['logged_in'=>!empty($_SESSION['logged_in']),'csrf'=>
 if(empty($_SESSION['logged_in']))out(['error'=>'Please sign in'],401);
 if($action==='logout'){csrf();session_destroy();out(['ok'=>true]);}
 try {
+ if($action==='cron'){
+  require dirname(__DIR__) . '/cron.php';
+  exit;
+ }
+ if($action==='cron_logs'){
+  $logs = db()->query('SELECT id, article_title, article_url, priority_category, priority_score, headline, image_file, channels_published, status, message, created_at FROM automation_logs ORDER BY id DESC LIMIT 20')->fetchAll();
+  out(['logs' => $logs]);
+ }
  if($action==='news'){
   $items=[];
   $ch=curl_init('https://fandomwire.com/feed/');
