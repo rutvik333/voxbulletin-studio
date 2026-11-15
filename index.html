@@ -348,8 +348,11 @@
     <!-- PANEL 2: Content Drafting -->
     <div class="panel">
       <div class="panel-header">
-        <h2><span>✍️</span> 02 / Generate Content</h2>
-        <p>Refine headline, copy, and platform captions. Optimized for maximum engagement.</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <h2><span>✍️</span> 02 / Generate Content</h2>
+          <span style="background:#132b40;color:#38bdf8;border:1px solid #285372;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px">DRAFT ONLY • DOES NOT PUBLISH</span>
+        </div>
+        <p>Refine headline, copy, and platform captions. Optimized for maximum engagement. <em>(Draft only — will not post to social media)</em>.</p>
       </div>
 
       <div class="field">
@@ -385,8 +388,8 @@
       </div>
 
       <div style="display:flex;gap:10px;margin-top:10px">
-        <button class="btn primary" onclick="generateWithGemini()" id="aiDraftBtn">✦ AI Draft with Gemini</button>
-        <button class="btn" onclick="render()">Refresh Canvas</button>
+        <button type="button" class="btn primary" onclick="generateWithGemini()" id="aiDraftBtn">✦ AI Draft with Gemini (Draft Only)</button>
+        <button type="button" class="btn" onclick="render()">Refresh Canvas</button>
       </div>
     </div>
 

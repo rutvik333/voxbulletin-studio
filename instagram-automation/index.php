@@ -77,7 +77,7 @@ input:checked + .slider:before{transform:translateX(20px)}
 .key-actions{display:flex;gap:6px;align-items:center}
 </style></head><body>
 <div id="login" class="login <?= $authed?'hide':'' ?>"><div class="brand">VOX <span>BULLETIN</span></div><p class="sub">CONTENT STUDIO</p><h1>Welcome back</h1><p class="muted">Sign in to your private news creation dashboard.</p><form id="loginForm"><div class="field"><label>ADMIN PASSWORD</label><input id="password" type="password" required autocomplete="current-password"></div><button class="btn" style="width:100%">Sign in</button></form><div id="loginErr" class="status"></div></div>
-<div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navAutomation" onclick="showPage('automation')">⚡ 3x/Day Auto-Post</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><h2>02 / Generate content</h2><div class="muted">Gemini writes an original draft from the selected source excerpt. Review before saving.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button class="btn blue" onclick="generate()" id="generateBtn">✦ Generate with Gemini</button><button class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
+<div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navAutomation" onclick="showPage('automation')">⚡ 3x/Day Auto-Post</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button type="button" class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2>02 / Generate content</h2><span class="pill" style="background:#132b40;color:#38bdf8;border:1px solid #285372;font-size:11px;font-weight:700">DRAFT ONLY • DOES NOT PUBLISH</span></div><div class="muted">Gemini writes an original draft from the selected source excerpt. <strong>This does NOT publish to social media</strong> — publishing only happens when you explicitly click the green "🚀 Publish to Selected Channels" button in Section 03.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button type="button" class="btn blue" onclick="generate(event)" id="generateBtn">✦ Generate with Gemini (Draft Only)</button><button type="button" class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button type="button" class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
 <div class="crosspost-box">
   <div class="crosspost-title">
     <h3><span>🚀</span> Cross-Post to Social Accounts</h3>
@@ -88,10 +88,10 @@ input:checked + .slider:before{transform:translateX(20px)}
   <div id="pubStatus" class="notice hide" style="margin-top:14px"></div>
 </div>
 <div class="actions">
-  <button class="btn-publish-all" onclick="publishSelected()" id="pubBtn">🚀 Publish to Selected Channels</button>
-  <button class="btn" onclick="download()">↓ Download PNG</button>
-  <button class="btn alt" type="button" onclick="shuffleTheme()">🎨 Shuffle Colors</button>
-  <button class="btn alt" onclick="save()" id="saveBtn">💾 Save to Library</button>
+  <button type="button" class="btn-publish-all" onclick="publishSelected(event)" id="pubBtn">🚀 Publish to Selected Channels</button>
+  <button type="button" class="btn" onclick="download()">↓ Download PNG</button>
+  <button type="button" class="btn alt" onclick="shuffleTheme()">🎨 Shuffle Colors</button>
+  <button type="button" class="btn alt" onclick="save()" id="saveBtn">💾 Save to Library</button>
 </div>
 <div id="status" class="notice">Select any news story from the list — title, description, and hero image will auto-apply instantly!</div></div></section></div><div id="libraryPage" class="hide"><div class="actions" style="margin-top:25px"><button class="btn blue" onclick="loadPosts()">↻ Refresh library</button></div><div id="postGrid" class="gridposts"></div></div><div id="automationPage" class="hide">
   <div class="panel" style="max-width:880px;margin:24px auto">
@@ -850,7 +850,8 @@ async function loadChannels(){
   }
 }
 
-async function publishSelected(){
+async function publishSelected(evt){
+  if(evt && evt.preventDefault) evt.preventDefault();
   if(!current) return status('Select a source story first.', true);
   if(!photo) return status('Please add or load a topic image before publishing.', true);
   if(!$('headline').value.trim() || !$('description').value.trim()) return status('Headline and description are required.', true);
@@ -860,6 +861,13 @@ async function publishSelected(){
 
   if(!selectedChannels.length){
     return status('Select at least one connected social account to publish.', true);
+  }
+
+  const channelNames = selectedChannels.map(k => (PLATFORMS_META[k] || {}).name || k).join(', ');
+  const confirmed = confirm('⚠️ PUBLISH TO SOCIAL MEDIA CONFIRMATION:\n\nAre you sure you want to publish this post live now to:\n• ' + selectedChannels.map(k => (PLATFORMS_META[k] || {}).name || k).join('\n• ') + '\n\nClick OK to publish live immediately, or Cancel to keep editing.');
+  if(!confirmed){
+    status('Publishing cancelled. Your post has NOT been published.');
+    return;
   }
 
   const btn = $('pubBtn');
@@ -1515,7 +1523,30 @@ async function selectStory(a,el){
     render();
   }
 }
-async function generate(){if(!current)return status('Select an article first.',true);const b=$('generateBtn');b.disabled=true;status('Gemini is drafting your post...');try{const j=await req('draft',{method:'POST',body:JSON.stringify({title:current.title,description:$('description').value,url:current.url})});$('headline').value=j.draft.headline;$('description').value=j.draft.description;$('caption').value=j.draft.caption;if($('captionX')){$('captionX').value=formatTwitterPost(j.draft.headline,j.draft.description);updateXCounter();}render();status('Draft generated. Verify the claims and review the copy before saving.')}catch(e){status(e.message,true)}finally{b.disabled=false}}
+async function generate(evt){
+  if(evt && evt.preventDefault) evt.preventDefault();
+  if(evt && evt.stopPropagation) evt.stopPropagation();
+  if(!current) return status('Select an article first.', true);
+  const b=$('generateBtn');
+  b.disabled=true;
+  status('✦ Gemini is writing your draft (Draft only — will not post to social media)...');
+  try{
+    const j=await req('draft',{method:'POST',body:JSON.stringify({title:current.title,description:$('description').value,url:current.url})});
+    $('headline').value=j.draft.headline;
+    $('description').value=j.draft.description;
+    $('caption').value=j.draft.caption;
+    if($('captionX')){
+      $('captionX').value=formatTwitterPost(j.draft.headline,j.draft.description);
+      updateXCounter();
+    }
+    render();
+    status('✓ Draft generated with Gemini! (Draft only — NOT published). Review and edit the copy, then click "🚀 Publish to Selected Channels" only when ready to post live.');
+  }catch(e){
+    status(e.message, true);
+  }finally{
+    b.disabled=false;
+  }
+}
 function loadFile(file,callback){if(!file)return;const url=URL.createObjectURL(file);const img=new Image();img.onload=()=>{callback(img);URL.revokeObjectURL(url);render()};img.onerror=()=>status('Could not read image',true);img.src=url}
 $('photoInput').onchange=e=>loadFile(e.target.files[0],i=>photo=i);$('logoInput').onchange=e=>loadFile(e.target.files[0],i=>logo=i);
 async function loadSourceImage(){if(!sourceImage)return status('No source image was found.',true);try{const r=await fetch('api/index.php?action=image&url='+encodeURIComponent(sourceImage));if(!r.ok)throw Error('Source image unavailable. Upload an image you have permission to use.');const blob=await r.blob();loadFile(new File([blob],'source-image.jpg',{type:blob.type}),i=>photo=i);status('Source image loaded for preview. Check reuse rights before publishing.')}catch(e){status(e.message,true)}}
