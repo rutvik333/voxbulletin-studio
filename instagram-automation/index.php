@@ -69,6 +69,12 @@ input:checked + .slider:before{transform:translateX(20px)}
 .buffer-sync-banner{background:linear-gradient(135deg,#0c1d38 0%,#132b52 100%);border:1px solid #3b82f6;border-radius:12px;padding:16px;margin-bottom:16px}
 .avatar-img{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.2)}
 .live-api-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:0.5px;background:#103b2b;color:#4ade80;border:1px solid #166534}
+.key-card{background:#0c192c;border:1px solid #1e3556;border-radius:12px;padding:12px 14px;transition:all .15s ease}
+.key-card:hover{border-color:#38bdf8}
+.key-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.key-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;background:#1a365d;color:#7dd3fc;border:1px solid #2b6cb0;letter-spacing:0.3px}
+.key-badge.primary{background:#14532d;color:#86efac;border-color:#16a34a}
+.key-actions{display:flex;gap:6px;align-items:center}
 </style></head><body>
 <div id="login" class="login <?= $authed?'hide':'' ?>"><div class="brand">VOX <span>BULLETIN</span></div><p class="sub">CONTENT STUDIO</p><h1>Welcome back</h1><p class="muted">Sign in to your private news creation dashboard.</p><form id="loginForm"><div class="field"><label>ADMIN PASSWORD</label><input id="password" type="password" required autocomplete="current-password"></div><button class="btn" style="width:100%">Sign in</button></form><div id="loginErr" class="status"></div></div>
 <div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navAutomation" onclick="showPage('automation')">⚡ 3x/Day Auto-Post</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><h2>02 / Generate content</h2><div class="muted">Gemini writes an original draft from the selected source excerpt. Review before saving.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button class="btn blue" onclick="generate()" id="generateBtn">✦ Generate with Gemini</button><button class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
@@ -167,32 +173,46 @@ input:checked + .slider:before{transform:translateX(20px)}
   </div>
 </div><div id="settingsPage" class="hide">
 
-<!-- Section 1: AI Settings -->
+<!-- Section 1: AI Settings & Multi-Key Failover Pool -->
 <div class="panel" style="max-width:760px;margin:24px auto">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
     <div>
-      <h2 style="font-size:20px;margin:0 0 5px">⚙ AI & Studio Settings</h2>
-      <div class="muted">Configure Google Gemini API key to power instant draft generation and captions.</div>
+      <h2 style="font-size:20px;margin:0 0 5px">⚙ Google Gemini Multi-Key Pool</h2>
+      <div class="muted">Add multiple Gemini API keys. If any key exceeds its daily limit, VoxBulletin automatically fails over to the next key!</div>
     </div>
     <span id="geminiPill" class="pill">● CHECKING...</span>
   </div>
   <div class="divider"></div>
-  <form id="settingsForm" onsubmit="saveSettings(event)">
-    <div class="field">
-      <label>GOOGLE GEMINI API KEY (FREE TIER)</label>
-      <div class="inline">
-        <input id="geminiKeyInput" type="password" placeholder="Paste your Gemini API key (AQ.Ab8... or AIzaSy...)">
-        <button type="button" class="btn alt small" id="toggleGeminiKey" onclick="toggleKeyVis('geminiKeyInput', 'toggleGeminiKey')">SHOW</button>
+
+  <div style="background:#09192e;border:1px solid #1c3d69;border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px">
+    <div style="font-size:22px;line-height:1">🛡</div>
+    <div style="font-size:12px;line-height:1.5;color:#9fb5d6">
+      <b style="color:#ffd12a">Daily Quota Protection Active:</b> Free Google AI Studio accounts provide a daily request limit per key. 
+      Add 2 or more free keys below. If Key #1 hits daily quota (HTTP 429 / <code>RESOURCE_EXHAUSTED</code>), both manual studio drafting and autonomous 3x/day publishing automatically roll over to Key #2 without interruption!
+      <div style="margin-top:6px">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#38bdf8;text-decoration:underline;font-weight:600">Get additional free keys at Google AI Studio ↗</a>
       </div>
-      <p class="muted" style="margin-top:8px">Get a 100% free Gemini API key with generous limits from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#ffd12a;text-decoration:underline">Google AI Studio ↗</a></p>
     </div>
-    <div class="field">
+  </div>
+
+  <form id="settingsForm" onsubmit="saveSettings(event)">
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <label style="margin:0;font-size:13px;color:#cbd5e1">CONFIGURED GEMINI API KEYS (<span id="keyPoolCount" style="color:#ffd12a;font-weight:700">0</span>)</label>
+      <button type="button" class="btn alt small" onclick="addKeyRow('')" style="padding:4px 10px;font-size:11px;font-weight:700;color:#ffd12a;border-color:#783510">+ Add Another API Key</button>
+    </div>
+
+    <div id="geminiKeysContainer" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <!-- Dynamically populated key rows -->
+    </div>
+
+    <div class="field" style="margin-top:20px;border-top:1px solid #1e3556;padding-top:18px">
       <label>ADMIN PASSWORD</label>
       <input id="newAdminPassword" type="password" placeholder="Leave blank to keep current password">
       <p class="muted" style="margin-top:5px">Default local password is <code>admin123</code></p>
     </div>
+
     <div class="actions" style="margin-top:24px">
-      <button type="submit" class="btn" id="saveSettingsBtn">✓ Test & Save Settings</button>
+      <button type="submit" class="btn" id="saveSettingsBtn">✓ Save All Keys & Settings</button>
       <button type="button" class="btn alt" onclick="showPage('create')">Back to Studio</button>
     </div>
     <div id="settingsMsg" class="status"></div>
@@ -1051,10 +1071,146 @@ async function runAutomationCycle(){
   }
 }
 
+let configuredGeminiKeys = [];
+
+function renderGeminiKeysList(keys){
+  configuredGeminiKeys = Array.isArray(keys) ? keys.filter(k => k && k.trim()) : [];
+  if(!configuredGeminiKeys.length) configuredGeminiKeys = [''];
+
+  const container = $('geminiKeysContainer');
+  if(!container) return;
+  container.replaceChildren();
+
+  const countEl = $('keyPoolCount');
+  if(countEl) countEl.textContent = configuredGeminiKeys.filter(k => k.trim()).length;
+
+  configuredGeminiKeys.forEach((keyVal, idx) => {
+    const card = document.createElement('div');
+    card.className = 'key-card';
+
+    const header = document.createElement('div');
+    header.className = 'key-header';
+
+    const leftH = document.createElement('div');
+    leftH.style.display = 'flex';
+    leftH.style.alignItems = 'center';
+    leftH.style.gap = '8px';
+
+    const badge = document.createElement('span');
+    badge.className = 'key-badge' + (idx === 0 ? ' primary' : '');
+    badge.textContent = idx === 0 ? 'KEY #1 (PRIMARY)' : ('KEY #' + (idx + 1) + ' (FAILOVER #' + idx + ')');
+
+    const statusSpan = document.createElement('span');
+    statusSpan.id = 'keyStatus_' + idx;
+    statusSpan.style.fontSize = '11px';
+    statusSpan.style.color = '#94a3b8';
+
+    leftH.append(badge, statusSpan);
+
+    const rightH = document.createElement('div');
+    rightH.className = 'key-actions';
+
+    const testBtn = document.createElement('button');
+    testBtn.type = 'button';
+    testBtn.className = 'btn alt small';
+    testBtn.style.padding = '3px 8px';
+    testBtn.style.fontSize = '11px';
+    testBtn.textContent = '⚡ Test Quota';
+    testBtn.onclick = () => testSingleKey(idx);
+
+    rightH.append(testBtn);
+
+    if(configuredGeminiKeys.length > 1){
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn alt small';
+      delBtn.style.padding = '3px 8px';
+      delBtn.style.fontSize = '11px';
+      delBtn.style.color = '#f87171';
+      delBtn.textContent = '✕ Remove';
+      delBtn.onclick = () => removeKeyRow(idx);
+      rightH.append(delBtn);
+    }
+
+    header.append(leftH, rightH);
+
+    const inpWrap = document.createElement('div');
+    inpWrap.className = 'inline';
+
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.id = 'geminiKey_' + idx;
+    input.value = keyVal;
+    input.placeholder = 'Paste Gemini API key (AQ.Ab8... or AIzaSy...)';
+    input.oninput = () => {
+      configuredGeminiKeys[idx] = input.value.trim();
+      if($('keyPoolCount')) $('keyPoolCount').textContent = configuredGeminiKeys.filter(k => k.trim()).length;
+    };
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'btn alt small';
+    toggleBtn.textContent = 'SHOW';
+    toggleBtn.onclick = () => {
+      input.type = input.type === 'password' ? 'text' : 'password';
+      toggleBtn.textContent = input.type === 'password' ? 'SHOW' : 'HIDE';
+    };
+
+    inpWrap.append(input, toggleBtn);
+    card.append(header, inpWrap);
+    container.append(card);
+  });
+}
+
+function addKeyRow(val = ''){
+  configuredGeminiKeys.push(val);
+  renderGeminiKeysList(configuredGeminiKeys);
+  const newIdx = configuredGeminiKeys.length - 1;
+  const inp = $('geminiKey_' + newIdx);
+  if(inp) inp.focus();
+}
+
+function removeKeyRow(idx){
+  if(configuredGeminiKeys.length <= 1){
+    configuredGeminiKeys = [''];
+  } else {
+    configuredGeminiKeys.splice(idx, 1);
+  }
+  renderGeminiKeysList(configuredGeminiKeys);
+}
+
+async function testSingleKey(idx){
+  const inp = $('geminiKey_' + idx);
+  const key = inp ? inp.value.trim() : '';
+  const st = $('keyStatus_' + idx);
+  if(!key){
+    if(st){ st.textContent = 'Enter key first'; st.style.color = '#f87171'; }
+    return;
+  }
+  if(st){ st.textContent = 'Pinging Gemini API...'; st.style.color = '#38bdf8'; }
+  try{
+    const res = await req('test_gemini_key', {
+      method: 'POST',
+      body: JSON.stringify({ key: key })
+    });
+    if(st){ st.textContent = '✓ Active (200 OK)'; st.style.color = '#4ade80'; }
+  }catch(err){
+    if(st){
+      if(err.message.includes('429') || err.message.toLowerCase().includes('quota')){
+        st.textContent = '✕ Quota Exceeded (429)'; st.style.color = '#facc15';
+      } else {
+        st.textContent = '✕ ' + err.message; st.style.color = '#f87171';
+      }
+    }
+  }
+}
+
 async function loadSettings(){
   try{
     const j=await req('get_settings');
-    if(j.gemini_key && $('geminiKeyInput')) $('geminiKeyInput').value=j.gemini_key;
+    const keys = (j.gemini_keys && j.gemini_keys.length) ? j.gemini_keys : (j.gemini_key ? [j.gemini_key] : []);
+    renderGeminiKeysList(keys);
+
     if(j.buffer_access_token && $('bufferTokenInput')) $('bufferTokenInput').value=j.buffer_access_token;
     if(j.public_base_url && $('publicBaseUrlInput')) $('publicBaseUrlInput').value=j.public_base_url;
     if(j.meta_access_token && $('metaTokenInput')) $('metaTokenInput').value=j.meta_access_token;
@@ -1063,11 +1219,15 @@ async function loadSettings(){
     // Gemini pill
     const gp=$('geminiPill');
     if(gp){
-      if(j.has_gemini_key){
-        gp.textContent='● GEMINI ACTIVE';
+      const validCount = keys.filter(k => k && k.trim()).length;
+      if(validCount > 1){
+        gp.textContent='● ' + validCount + ' KEYS LOADED (FAILOVER READY)';
         gp.style.background='#123528';gp.style.borderColor='#245a45';gp.style.color='#71e5aa';
-      }else{
-        gp.textContent='● KEY MISSING';
+      } else if(validCount === 1){
+        gp.textContent='● 1 KEY ACTIVE';
+        gp.style.background='#123528';gp.style.borderColor='#245a45';gp.style.color='#71e5aa';
+      } else {
+        gp.textContent='● NO KEYS FOUND';
         gp.style.background='#382215';gp.style.borderColor='#784920';gp.style.color='#ffd699';
       }
     }
@@ -1102,15 +1262,30 @@ async function saveSettings(e){
   e.preventDefault();
   const b=$('saveSettingsBtn');
   b.disabled=true;
-  $('settingsMsg').textContent='Validating with Google Gemini...';
+  $('settingsMsg').textContent='Saving and validating keys...';
   $('settingsMsg').classList.remove('error');
+
+  const currentKeys = [];
+  const inputs = document.querySelectorAll('[id^="geminiKey_"]');
+  inputs.forEach(inp => {
+    const val = inp.value.trim();
+    if(val && !currentKeys.includes(val)) currentKeys.push(val);
+  });
+
   try{
-    const key=$('geminiKeyInput').value.trim();
     const pass=$('newAdminPassword').value.trim();
-    const j=await req('save_settings',{method:'POST',body:JSON.stringify({gemini_api_key:key,admin_password:pass,test:true})});
+    const j=await req('save_settings',{
+      method:'POST',
+      body:JSON.stringify({
+        gemini_api_keys: currentKeys,
+        gemini_api_key: currentKeys[0] || '',
+        admin_password: pass,
+        test: currentKeys.length > 0
+      })
+    });
     $('settingsMsg').textContent='✓ '+(j.message||'Settings saved successfully!');
     $('newAdminPassword').value='';
-    loadSettings();
+    await loadSettings();
   }catch(e){
     $('settingsMsg').textContent=e.message;
     $('settingsMsg').classList.add('error');

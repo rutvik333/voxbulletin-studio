@@ -250,6 +250,104 @@ function uploadToCdn($filePath, $bytes) {
     return null;
 }
 
+if (!function_exists('getGeminiKeysPool')) {
+    function getGeminiKeysPool($cfg) {
+        $keys = [];
+        if (!empty($cfg['gemini_api_keys']) && is_array($cfg['gemini_api_keys'])) {
+            foreach ($cfg['gemini_api_keys'] as $k) {
+                $k = trim((string)$k);
+                if ($k !== '' && !str_contains($k, 'PASTE_')) $keys[] = $k;
+            }
+        }
+        if (empty($keys) && !empty($cfg['gemini_api_key'])) {
+            $k = trim((string)$cfg['gemini_api_key']);
+            if ($k !== '' && !str_contains($k, 'PASTE_')) $keys[] = $k;
+        }
+        if (empty($keys)) {
+            $extCfg = dirname(__DIR__) . '/facebook-post-extractor/config.json';
+            if (file_exists($extCfg)) {
+                $j = json_decode(file_get_contents($extCfg), true);
+                if (!empty($j['gemini_api_keys']) && is_array($j['gemini_api_keys'])) {
+                    foreach ($j['gemini_api_keys'] as $k) {
+                        $k = trim((string)$k);
+                        if ($k !== '' && !str_contains($k, 'PASTE_')) $keys[] = $k;
+                    }
+                } elseif (!empty($j['gemini_api_key'])) {
+                    $k = trim((string)$j['gemini_api_key']);
+                    if ($k !== '' && !str_contains($k, 'PASTE_')) $keys[] = $k;
+                }
+            }
+        }
+        return array_values(array_unique($keys));
+    }
+}
+
+if (!function_exists('callGeminiWithFailover')) {
+    function callGeminiWithFailover($prompt, $cfg, $options = []) {
+        $keys = getGeminiKeysPool($cfg);
+        if (empty($keys)) {
+            return ['ok' => false, 'error' => 'No Gemini API keys configured.'];
+        }
+
+        $isJson = !empty($options['json']);
+        $model = $options['model'] ?? 'gemini-2.5-flash';
+        $temperature = $options['temperature'] ?? 0.25;
+
+        $generationConfig = ['temperature' => $temperature];
+        if ($isJson) {
+            $generationConfig['responseMimeType'] = 'application/json';
+        }
+
+        $payload = json_encode([
+            'contents' => [
+                ['parts' => [['text' => $prompt]]]
+            ],
+            'generationConfig' => $generationConfig
+        ], JSON_UNESCAPED_SLASHES);
+
+        $errors = [];
+        foreach ($keys as $idx => $key) {
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 35,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+                CURLOPT_POSTFIELDS => $payload
+            ]);
+            $raw = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $res = json_decode($raw ?: '', true);
+            $masked = (strlen($key) > 10) ? substr($key, 0, 6) . '...' . substr($key, -4) : 'Key#' . ($idx + 1);
+
+            if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
+                return [
+                    'ok' => true,
+                    'text' => $res['candidates'][0]['content']['parts'][0]['text'],
+                    'key_index' => $idx,
+                    'key_used' => $masked,
+                    'failovers' => $idx,
+                    'data' => $res
+                ];
+            }
+
+            $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
+            $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+            $errors[] = "Key #" . ($idx + 1) . " (" . $masked . "): " . ($isQuota ? "Daily quota exceeded" : $errMsg);
+        }
+
+        return [
+            'ok' => false,
+            'error' => 'All Gemini keys failed or exceeded quota limit.',
+            'details' => implode(' | ', $errors),
+            'keys_count' => count($keys)
+        ];
+    }
+}
+
 // ---------------------------------------------------------------------
 // DATABASE INITIALIZATION & CONNECTIVITY
 // ---------------------------------------------------------------------
@@ -412,47 +510,30 @@ usort($candidates, function($a, $b) {
 
 $chosen = $candidates[0];
 
-// 5. Rewrite Copy with Google Gemini AI
-$geminiKey = $config['gemini_api_key'] ?? '';
+// 5. Rewrite Copy with Google Gemini AI (with Automatic Multi-Key Failover)
 $hl = $chosen['title'];
 $desc = $chosen['description'];
 $caption = $chosen['title'] . "\n\n" . $chosen['description'] . "\n\n#voxbulletin #EntertainmentNews";
 $captionX = '';
+$keyUsedInfo = '';
 
-if ($geminiKey) {
-    $prompt = "You are the lead editor for VoxBulletin, an elite entertainment news brand.\n" .
-              "Article Title: " . $chosen['title'] . "\n" .
-              "Article Summary: " . $chosen['description'] . "\n" .
-              "Task: Create a punchy viral headline (6-12 words uppercase, no quotes), a clean 2-sentence summary under 200 chars for the graphic, a full multi-paragraph Instagram/Facebook caption with hook and hashtags (#voxbulletin #EntertainmentNews), and a Twitter/X post strictly UNDER 260 characters with #voxbulletin.\n" .
-              "Respond ONLY in valid JSON matching this schema: {\"headline\": \"...\", \"description\": \"...\", \"caption\": \"...\", \"caption_x\": \"...\"}";
+$prompt = "You are the lead editor for VoxBulletin, an elite entertainment news brand.\n" .
+          "Article Title: " . $chosen['title'] . "\n" .
+          "Article Summary: " . $chosen['description'] . "\n" .
+          "Task: Create a punchy viral headline (6-12 words uppercase, no quotes), a clean 2-sentence summary under 200 chars for the graphic, a full multi-paragraph Instagram/Facebook caption with hook and hashtags (#voxbulletin #EntertainmentNews), and a Twitter/X post strictly UNDER 260 characters with #voxbulletin.\n" .
+          "Respond ONLY in valid JSON matching this schema: {\"headline\": \"...\", \"description\": \"...\", \"caption\": \"...\", \"caption_x\": \"...\"}";
 
-    $geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $geminiKey;
-    $ch = curl_init($geminiUrl);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 25,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode([
-            'contents' => [
-                ['parts' => [['text' => $prompt]]]
-            ]
-        ])
-    ]);
-    $gRes = curl_exec($ch);
-    curl_close($ch);
-
-    if ($gRes) {
-        $gJson = json_decode($gRes, true);
-        $rawTxt = $gJson['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        if (preg_match('/\{[\s\S]*\}/', $rawTxt, $m)) {
-            $parsed = json_decode($m[0], true);
-            if (!empty($parsed['headline'])) $hl = cleanText($parsed['headline']);
-            if (!empty($parsed['description'])) $desc = cleanText($parsed['description']);
-            if (!empty($parsed['caption'])) $caption = trim($parsed['caption']);
-            if (!empty($parsed['caption_x'])) $captionX = trim($parsed['caption_x']);
-        }
+$gCall = callGeminiWithFailover($prompt, $config, ['json' => true]);
+if (!empty($gCall['ok'])) {
+    $rawTxt = $gCall['text'] ?? '';
+    if (preg_match('/\{[\s\S]*\}/', $rawTxt, $m)) {
+        $parsed = json_decode($m[0], true);
+        if (!empty($parsed['headline'])) $hl = cleanText($parsed['headline']);
+        if (!empty($parsed['description'])) $desc = cleanText($parsed['description']);
+        if (!empty($parsed['caption'])) $caption = trim($parsed['caption']);
+        if (!empty($parsed['caption_x'])) $captionX = trim($parsed['caption_x']);
     }
+    $keyUsedInfo = ' (via ' . ($gCall['key_used'] ?? 'Gemini') . ($gCall['failovers'] > 0 ? ', failovers: ' . $gCall['failovers'] : '') . ')';
 }
 
 // 6. Guarantee Twitter / X character ceiling <= 280
@@ -600,7 +681,7 @@ $newPostId = $pdo->lastInsertId();
 
 // 11. Log Automation Success
 $logStmt = $pdo->prepare('INSERT INTO automation_logs (article_title, article_url, priority_category, priority_score, headline, image_file, channels_published, status, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-$summaryMsg = 'Successfully auto-selected and published across: ' . ($chanStr ?: 'None');
+$summaryMsg = 'Successfully auto-selected and published across: ' . ($chanStr ?: 'None') . $keyUsedInfo;
 $logStmt->execute([$chosen['title'], $chosen['url'], $chosen['category'], $chosen['score'], $hl, $fileName, $chanStr, 'success', $summaryMsg]);
 
 $outputData = [

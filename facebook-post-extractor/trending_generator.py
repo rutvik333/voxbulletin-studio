@@ -34,16 +34,44 @@ def set_openai_key(new_key):
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
 
-def get_gemini_key():
+def get_gemini_keys():
+    keys = []
     if os.path.exists(CONFIG_PATH):
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if data.get("gemini_api_key"):
-                    return data["gemini_api_key"].strip()
+                if data.get("gemini_api_keys") and isinstance(data["gemini_api_keys"], list):
+                    keys = [k.strip() for k in data["gemini_api_keys"] if k and k.strip()]
+                elif data.get("gemini_api_key"):
+                    keys = [data["gemini_api_key"].strip()]
         except Exception:
             pass
-    return os.getenv("GEMINI_API_KEY", "").strip()
+    if not keys:
+        # Check parent instagram-automation config.php
+        php_cfg = os.path.join(os.path.dirname(os.path.dirname(__file__)), "instagram-automation", "config.php")
+        if os.path.exists(php_cfg):
+            try:
+                with open(php_cfg, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    import re
+                    m_arr = re.findall(r"'gemini_api_keys'\s*=>\s*\[([^\]]+)\]", content)
+                    if m_arr:
+                        keys = [k.strip().strip("'\"") for k in re.findall(r"['\"]([^'\"]+)['\"]", m_arr[0])]
+                    if not keys:
+                        m_single = re.search(r"'gemini_api_key'\s*=>\s*['\"]([^'\"]+)['\"]", content)
+                        if m_single:
+                            keys = [m_single.group(1).strip()]
+            except Exception:
+                pass
+    if not keys:
+        env_k = os.getenv("GEMINI_API_KEY", "").strip()
+        if env_k:
+            keys = [env_k]
+    return [k for k in keys if k and not k.startswith("PASTE_")]
+
+def get_gemini_key():
+    keys = get_gemini_keys()
+    return keys[0] if keys else ""
 
 def set_gemini_key(new_key):
     config = {}
@@ -54,6 +82,25 @@ def set_gemini_key(new_key):
         except Exception:
             config = {}
     config["gemini_api_key"] = new_key.strip()
+    if "gemini_api_keys" in config and isinstance(config["gemini_api_keys"], list):
+        if new_key.strip() not in config["gemini_api_keys"]:
+            config["gemini_api_keys"].insert(0, new_key.strip())
+    else:
+        config["gemini_api_keys"] = [new_key.strip()]
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
+
+def set_gemini_keys(keys_list):
+    config = {}
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception:
+            config = {}
+    clean_keys = [k.strip() for k in keys_list if k and k.strip() and not k.startswith("PASTE_")]
+    config["gemini_api_keys"] = clean_keys
+    config["gemini_api_key"] = clean_keys[0] if clean_keys else ""
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
 
@@ -103,9 +150,9 @@ def set_active_provider(provider):
         json.dump(config, f, indent=2)
 
 def fetch_gemini_topic(api_key=None, model="gemini-2.5-flash"):
-    """Generates an entertainment news post via Google Gemini API."""
-    key = (api_key or get_gemini_key()).strip()
-    if not key:
+    """Generates an entertainment news post via Google Gemini API with automatic multi-key failover."""
+    keys = [api_key.strip()] if api_key else get_gemini_keys()
+    if not keys:
         return None, "No Gemini API key configured. Click '⚙ API Settings' to add your free Gemini key."
 
     prompt = (
@@ -117,7 +164,6 @@ def fetch_gemini_topic(api_key=None, model="gemini-2.5-flash"):
         "3. 'brand': 'VOX BULLETIN'. "
         "4. 'image_query': search query to find the best movie still."
     )
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -125,21 +171,27 @@ def fetch_gemini_topic(api_key=None, model="gemini-2.5-flash"):
             "temperature": 0.8
         }
     }
-    try:
-        r = requests.post(url, json=payload, timeout=15)
-        if not r.ok:
-            err = r.json().get("error", {}).get("message", r.text)
-            return None, f"Gemini API Error: {err}"
-        
-        candidates = r.json().get("candidates", [])
-        if not candidates:
-            return None, "Gemini returned no candidates."
-        
-        raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-        data = json.loads(raw_text)
-        return data, None
-    except Exception as e:
-        return None, str(e)
+
+    errors = []
+    for idx, key in enumerate(keys):
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        try:
+            r = requests.post(url, json=payload, timeout=20)
+            if r.ok:
+                candidates = r.json().get("candidates", [])
+                if candidates:
+                    raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    data = json.loads(raw_text)
+                    data['key_index'] = idx
+                    data['failovers'] = idx
+                    return data, None
+            
+            err = r.json().get("error", {}).get("message", r.text) if r.content else f"HTTP {r.status_code}"
+            errors.append(f"Key #{idx+1}: {err}")
+        except Exception as e:
+            errors.append(f"Key #{idx+1}: {e}")
+
+    return None, f"All Gemini keys ({len(keys)}) failed: " + " | ".join(errors)
 
 def fetch_ai_topic(provider=None):
     """Dynamically routes to active AI provider (Gemini or OpenAI)."""

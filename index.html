@@ -422,20 +422,26 @@
 
   <!-- Settings Modal -->
   <div id="settingsModal" class="modal-overlay hide">
-    <div class="modal-card">
+    <div class="modal-card" style="max-height:85vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 style="color:#fff;font-size:18px">⚙ Studio Settings</h3>
+        <h3 style="color:#fff;font-size:18px;margin:0">⚙ Studio Settings & Key Pool</h3>
         <button class="btn small" onclick="closeSettingsModal()">&times;</button>
       </div>
-      <p style="font-size:12px;color:var(--text-muted)">Your API keys are stored securely inside your browser's <code>localStorage</code> and never sent to external servers.</p>
-      
-      <div class="field">
-        <label>GOOGLE GEMINI API KEY</label>
-        <input type="password" id="geminiKeyInput" placeholder="AQ.Ab8... or AIzaSy...">
-        <p style="font-size:11px;color:var(--text-muted)">Get a free API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--accent-yellow)">Google AI Studio ↗</a></p>
+      <p style="font-size:12px;color:var(--text-muted);margin:0">
+        Your API keys are stored securely inside your browser's <code>localStorage</code>. Add multiple free Gemini keys so if one reaches its daily limit, VoxBulletin automatically fails over to the next key!
+      </p>
+
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <label style="font-size:12px;font-weight:700;color:#cbd5e1">GEMINI API KEYS POOL</label>
+        <button type="button" class="btn small" onclick="addWebKeyRow('')" style="color:var(--accent-yellow)">+ Add Another Key</button>
       </div>
 
-      <div class="field">
+      <div id="webKeysContainer" style="display:flex;flex-direction:column;gap:8px">
+        <!-- Dynamically populated key rows -->
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin:0">Get free keys at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--accent-yellow)">Google AI Studio ↗</a></p>
+
+      <div class="field" style="margin-top:10px">
         <label>OPTIONAL LOCAL / HOSTINGER BACKEND API URL</label>
         <input type="text" id="backendUrlInput" placeholder="http://127.0.0.1:8000/api/index.php">
       </div>
@@ -790,23 +796,114 @@
     });
     $('xInput').addEventListener('input', updateXCounter);
 
-    // Settings Modal
+    // Settings Modal with Multi-Key Pool
+    let webGeminiKeys = [];
+
+    function renderWebKeysList(keys) {
+      webGeminiKeys = Array.isArray(keys) ? keys.filter(k => k && k.trim()) : [];
+      if (!webGeminiKeys.length) webGeminiKeys = [''];
+
+      const container = $('webKeysContainer');
+      if (!container) return;
+      container.replaceChildren();
+
+      webGeminiKeys.forEach((keyVal, idx) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.alignItems = 'center';
+
+        const badge = document.createElement('span');
+        badge.style.fontSize = '11px';
+        badge.style.fontWeight = '700';
+        badge.style.padding = '4px 8px';
+        badge.style.borderRadius = '4px';
+        badge.style.background = idx === 0 ? '#14532d' : '#1e293b';
+        badge.style.color = idx === 0 ? '#86efac' : '#94a3b8';
+        badge.style.whiteSpace = 'nowrap';
+        badge.textContent = idx === 0 ? 'KEY #1' : ('KEY #' + (idx + 1));
+
+        const input = document.createElement('input');
+        input.type = 'password';
+        input.id = 'webKey_' + idx;
+        input.value = keyVal;
+        input.placeholder = 'Paste Gemini key (AQ.Ab8... or AIzaSy...)';
+        input.style.flex = '1';
+        input.oninput = () => { webGeminiKeys[idx] = input.value.trim(); };
+
+        const showBtn = document.createElement('button');
+        showBtn.type = 'button';
+        showBtn.className = 'btn small';
+        showBtn.textContent = 'SHOW';
+        showBtn.onclick = () => {
+          input.type = input.type === 'password' ? 'text' : 'password';
+          showBtn.textContent = input.type === 'password' ? 'SHOW' : 'HIDE';
+        };
+
+        row.append(badge, input, showBtn);
+
+        if (webGeminiKeys.length > 1) {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'btn small';
+          delBtn.style.color = '#f87171';
+          delBtn.textContent = '✕';
+          delBtn.onclick = () => {
+            webGeminiKeys.splice(idx, 1);
+            renderWebKeysList(webGeminiKeys);
+          };
+          row.append(delBtn);
+        }
+
+        container.append(row);
+      });
+    }
+
+    function addWebKeyRow(val = '') {
+      webGeminiKeys.push(val);
+      renderWebKeysList(webGeminiKeys);
+      const newIdx = webGeminiKeys.length - 1;
+      const inp = $('webKey_' + newIdx);
+      if (inp) inp.focus();
+    }
+
+    function getWebGeminiKeys() {
+      let keys = [];
+      try {
+        const stored = localStorage.getItem('vox_gemini_keys');
+        if (stored) keys = JSON.parse(stored);
+      } catch(e) {}
+      if (!keys.length && localStorage.getItem('vox_gemini_key')) {
+        keys = [localStorage.getItem('vox_gemini_key')];
+      }
+      return keys.filter(k => k && k.trim());
+    }
+
     function openSettingsModal() {
-      $('geminiKeyInput').value = localStorage.getItem('vox_gemini_key') || '';
+      const keys = getWebGeminiKeys();
+      renderWebKeysList(keys);
       $('backendUrlInput').value = localStorage.getItem('vox_backend_url') || 'http://127.0.0.1:8000/api/index.php';
       $('settingsModal').classList.remove('hide');
     }
     function closeSettingsModal() { $('settingsModal').classList.add('hide'); }
+
     function saveSettings() {
-      localStorage.setItem('vox_gemini_key', $('geminiKeyInput').value.trim());
+      const cleanKeys = [];
+      const inputs = document.querySelectorAll('[id^="webKey_"]');
+      inputs.forEach(inp => {
+        const val = inp.value.trim();
+        if (val && !cleanKeys.includes(val)) cleanKeys.push(val);
+      });
+      localStorage.setItem('vox_gemini_keys', JSON.stringify(cleanKeys));
+      localStorage.setItem('vox_gemini_key', cleanKeys[0] || '');
       localStorage.setItem('vox_backend_url', $('backendUrlInput').value.trim());
       closeSettingsModal();
-      alert('Settings saved!');
+      alert('Settings saved! ' + cleanKeys.length + ' Gemini key(s) loaded into failover pool.');
     }
 
     async function generateWithGemini() {
-      const key = localStorage.getItem('vox_gemini_key');
-      if (!key) {
+      const keys = getWebGeminiKeys();
+      if (!keys.length) {
         alert('Please enter your free Gemini API key in Settings first.');
         openSettingsModal();
         return;
@@ -815,31 +912,48 @@
       btn.disabled = true;
       btn.textContent = 'Generating...';
 
-      try {
-        const headline = $('headlineInput').value;
-        const prompt = `You are a social editor for VoxBulletin. Write an entertainment news post for: "${headline}". Respond ONLY in valid JSON matching: {"headline": "...", "description": "...", "caption": "..."}`;
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await res.json();
-        const text = data.candidates[0].content.parts[0].text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const draft = JSON.parse(jsonMatch[0]);
-          $('headlineInput').value = draft.headline.toUpperCase();
-          $('descInput').value = draft.description;
-          $('captionInput').value = draft.caption;
-          syncTwitterPost();
-          render();
+      const headline = $('headlineInput').value;
+      const prompt = `You are a social editor for VoxBulletin. Write an entertainment news post for: "${headline}". Respond ONLY in valid JSON matching: {"headline": "...", "description": "...", "caption": "..."}`;
+      const errors = [];
+
+      for (let i = 0; i < keys.length; i++) {
+        const currentKey = keys[i];
+        btn.textContent = `Drafting (Key #${i + 1})...`;
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          const data = await res.json();
+          if (res.ok && data.candidates && data.candidates[0]) {
+            const text = data.candidates[0].content.parts[0].text;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const draft = JSON.parse(jsonMatch[0]);
+              $('headlineInput').value = draft.headline.toUpperCase();
+              $('descInput').value = draft.description;
+              $('captionInput').value = draft.caption;
+              syncTwitterPost();
+              render();
+              if (i > 0) {
+                alert(`✓ Generated successfully using Backup Key #${i + 1} (Key #1 was rate limited)!`);
+              }
+              btn.disabled = false;
+              btn.textContent = '✦ AI Draft with Gemini';
+              return;
+            }
+          }
+          const errDetail = (data.error && data.error.message) ? data.error.message : ('HTTP ' + res.status);
+          errors.push(`Key #${i + 1}: ${errDetail}`);
+        } catch (err) {
+          errors.push(`Key #${i + 1}: ${err.message}`);
         }
-      } catch (err) {
-        alert('Gemini draft error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '✦ AI Draft with Gemini';
       }
+
+      alert('All Gemini keys failed or exceeded daily quota:\n' + errors.join('\n'));
+      btn.disabled = false;
+      btn.textContent = '✦ AI Draft with Gemini';
     }
 
     // Init

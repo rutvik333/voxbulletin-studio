@@ -61,13 +61,16 @@ def studio():
 
 @app.get('/api/settings/ai')
 def get_ai_settings():
-    g_key = trending_generator.get_gemini_key()
+    g_keys = trending_generator.get_gemini_keys()
+    g_key = g_keys[0] if g_keys else ""
     o_key = trending_generator.get_openai_key()
     g_masked = (g_key[:6] + "..." + g_key[-4:]) if len(g_key) > 10 else ("*" * len(g_key) if g_key else "")
     o_masked = (o_key[:8] + "..." + o_key[-4:]) if len(o_key) > 12 else ("*" * len(o_key) if o_key else "")
     return jsonify(
         gemini_masked=g_masked,
         gemini_has_key=bool(g_key),
+        gemini_keys_count=len(g_keys),
+        gemini_keys=g_keys,
         openai_masked=o_masked,
         openai_has_key=bool(o_key),
         active_provider=trending_generator.get_active_provider()
@@ -76,6 +79,12 @@ def get_ai_settings():
 @app.post('/api/settings/gemini')
 def set_gemini_settings():
     body = request.get_json(silent=True) or {}
+    new_keys = body.get('api_keys')
+    if isinstance(new_keys, list) and new_keys:
+        trending_generator.set_gemini_keys(new_keys)
+        trending_generator.set_active_provider('gemini')
+        return jsonify(success=True, message=f"Saved {len(new_keys)} Gemini keys with failover support.")
+
     new_key = (body.get('api_key') or '').strip()
     if not new_key:
         return jsonify(error="Gemini API key cannot be empty."), 400

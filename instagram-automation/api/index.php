@@ -73,6 +73,141 @@ function getPublicPosterUrl($file, $bytes, $configPublicBaseUrl){
  }
  return ($baseUrl ?: 'http://127.0.0.1:8000') . '/storage/posts/' . $file;
 }
+
+function getGeminiKeysPool($cfg) {
+ $keys = [];
+ if (!empty($cfg['gemini_api_keys']) && is_array($cfg['gemini_api_keys'])) {
+  foreach ($cfg['gemini_api_keys'] as $k) {
+   $k = trim((string)$k);
+   if ($k !== '' && !str_contains($k, 'PASTE_')) {
+    $keys[] = $k;
+   }
+  }
+ }
+ if (empty($keys) && !empty($cfg['gemini_api_key'])) {
+  $k = trim((string)$cfg['gemini_api_key']);
+  if ($k !== '' && !str_contains($k, 'PASTE_')) {
+   $keys[] = $k;
+  }
+ }
+ if (empty($keys)) {
+  $extCfg = dirname(dirname(__DIR__)) . '/facebook-post-extractor/config.json';
+  if (file_exists($extCfg)) {
+   $j = json_decode(file_get_contents($extCfg), true);
+   if (!empty($j['gemini_api_keys']) && is_array($j['gemini_api_keys'])) {
+    foreach ($j['gemini_api_keys'] as $k) {
+     $k = trim((string)$k);
+     if ($k !== '' && !str_contains($k, 'PASTE_')) $keys[] = $k;
+    }
+   } elseif (!empty($j['gemini_api_key'])) {
+    $k = trim((string)$j['gemini_api_key']);
+    if ($k !== '' && !str_contains($k, 'PASTE_')) $keys[] = $k;
+   }
+  }
+ }
+ return array_values(array_unique($keys));
+}
+
+function testGeminiApiKey($key) {
+ $key = trim((string)$key);
+ if (!$key || str_contains($key, 'PASTE_')) {
+  return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
+ }
+ $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . urlencode($key);
+ $testPayload = json_encode([
+  'contents' => [['parts' => [['text' => 'ping']]]],
+  'generationConfig' => ['maxOutputTokens' => 2]
+ ], JSON_UNESCAPED_SLASHES);
+
+ $ch = curl_init($url);
+ curl_setopt_array($ch, [
+  CURLOPT_POST => true,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_TIMEOUT => 15,
+  CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+  CURLOPT_POSTFIELDS => $testPayload
+ ]);
+ $resRaw = curl_exec($ch);
+ $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+ curl_close($ch);
+
+ if ($code === 200) {
+  return ['ok' => true, 'message' => 'Key is active and responsive (200 OK)!'];
+ }
+ $res = json_decode($resRaw ?: '', true);
+ $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
+ $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || stripos($errMsg, 'rate') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+ return [
+  'ok' => false,
+  'error' => $errMsg,
+  'is_quota' => $isQuota,
+  'code' => $code
+ ];
+}
+
+function callGeminiWithFailover($prompt, $cfg, $options = []) {
+ $keys = getGeminiKeysPool($cfg);
+ if (empty($keys)) {
+  return ['ok' => false, 'error' => 'No Gemini API keys configured. Please add one or more keys in Settings.'];
+ }
+
+ $isJson = !empty($options['json']);
+ $model = $options['model'] ?? 'gemini-2.5-flash';
+ $temperature = $options['temperature'] ?? 0.25;
+
+ $generationConfig = ['temperature' => $temperature];
+ if ($isJson) {
+  $generationConfig['responseMimeType'] = 'application/json';
+ }
+
+ $payload = json_encode([
+  'contents' => [
+   ['parts' => [['text' => $prompt]]]
+  ],
+  'generationConfig' => $generationConfig
+ ], JSON_UNESCAPED_SLASHES);
+
+ $errors = [];
+ foreach ($keys as $idx => $key) {
+  $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . urlencode($key);
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [
+   CURLOPT_POST => true,
+   CURLOPT_RETURNTRANSFER => true,
+   CURLOPT_TIMEOUT => 45,
+   CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
+   CURLOPT_POSTFIELDS => $payload
+  ]);
+  $raw = curl_exec($ch);
+  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+
+  $res = json_decode($raw ?: '', true);
+  $masked = (strlen($key) > 10) ? substr($key, 0, 6) . '...' . substr($key, -4) : 'Key#' . ($idx + 1);
+
+  if ($code === 200 && !empty($res['candidates'][0]['content']['parts'][0]['text'])) {
+   return [
+    'ok' => true,
+    'text' => $res['candidates'][0]['content']['parts'][0]['text'],
+    'key_index' => $idx,
+    'key_used' => $masked,
+    'failovers' => $idx,
+    'data' => $res
+   ];
+  }
+
+  $errMsg = $res['error']['message'] ?? ('HTTP ' . $code);
+  $isQuota = ($code === 429 || $code === 403 || stripos($errMsg, 'quota') !== false || ($res['error']['status'] ?? '') === 'RESOURCE_EXHAUSTED');
+  $errors[] = "Key #" . ($idx + 1) . " (" . $masked . "): " . ($isQuota ? "Daily quota/rate limit exceeded (HTTP $code)" : $errMsg);
+ }
+
+ return [
+  'ok' => false,
+  'error' => 'All Gemini API keys in pool (' . count($keys) . ') failed or exceeded daily quota.',
+  'details' => implode(' | ', $errors),
+  'keys_count' => count($keys)
+ ];
+}
 function csrf(){if(!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??''))out(['error'=>'Invalid security token'],403);}
 $action=$_GET['action']??'';
 if($action==='login'){
@@ -212,21 +347,29 @@ try {
   if(!in_array($info[2],[IMAGETYPE_JPEG,IMAGETYPE_PNG,IMAGETYPE_WEBP],true))out(['error'=>'Unsupported image type'],422);
   header('Content-Type: '.$info['mime']);echo $bin;exit;
  }
+ if($action==='test_gemini_key'){
+  csrf();
+  $in = json_decode(file_get_contents('php://input'), true) ?: [];
+  $key = trim((string)($in['key'] ?? ''));
+  if(!$key) out(['error' => 'No key provided to test'], 400);
+  $res = testGeminiApiKey($key);
+  if($res['ok']){
+   out(['ok' => true, 'message' => $res['message']]);
+  } else {
+   out(['error' => $res['error'], 'is_quota' => !empty($res['is_quota'])], 400);
+  }
+ }
  if($action==='get_settings'){
   csrf();
-  $key = $c['gemini_api_key'] ?? '';
-  if(!$key){
-   $extCfg = dirname(dirname(__DIR__)).'/facebook-post-extractor/config.json';
-   if(file_exists($extCfg)){
-    $j = json_decode(file_get_contents($extCfg), true);
-    if(!empty($j['gemini_api_key'])) $key = $j['gemini_api_key'];
-   }
+  $keys = getGeminiKeysPool($c);
+  $maskedList = [];
+  foreach($keys as $k){
+   $len = strlen($k);
+   $maskedList[] = ($len > 10) ? substr($k, 0, 6) . '...' . substr($k, -4) : '********';
   }
-  $masked = '';
-  if($key){
-   $len = strlen($key);
-   $masked = $len > 12 ? substr($key, 0, 8) . '...' . substr($key, -4) : '********';
-  }
+  $firstKey = $keys[0] ?? '';
+  $masked = $maskedList[0] ?? '';
+
   $bufToken = $c['buffer_access_token'] ?? '';
   $bufMasked = '';
   if($bufToken){
@@ -234,9 +377,12 @@ try {
    $bufMasked = $len > 10 ? substr($bufToken, 0, 6) . '...' . substr($bufToken, -4) : '********';
   }
   out([
-   'has_gemini_key' => !empty($key),
+   'has_gemini_key' => !empty($keys),
+   'gemini_keys' => $keys,
+   'gemini_masked_list' => $maskedList,
+   'gemini_count' => count($keys),
+   'gemini_key' => $firstKey,
    'gemini_masked' => $masked,
-   'gemini_key' => $key,
    'buffer_access_token' => $bufToken,
    'buffer_masked' => $bufMasked,
    'has_buffer_token' => !empty($bufToken),
@@ -249,7 +395,18 @@ try {
  if($action==='save_settings'){
   csrf();
   $in = json_decode(file_get_contents('php://input'), true) ?: [];
-  $newKey = trim((string)($in['gemini_api_key'] ?? ''));
+  
+  $submittedKeys = [];
+  if (isset($in['gemini_api_keys']) && is_array($in['gemini_api_keys'])) {
+   foreach ($in['gemini_api_keys'] as $k) {
+    $k = trim((string)$k);
+    if ($k !== '' && !str_contains($k, 'PASTE_')) $submittedKeys[] = $k;
+   }
+  } elseif (!empty($in['gemini_api_key'])) {
+   $submittedKeys = [trim((string)$in['gemini_api_key'])];
+  }
+
+  $finalKeys = !empty($submittedKeys) ? array_values(array_unique($submittedKeys)) : getGeminiKeysPool($c);
   $newPass = trim((string)($in['admin_password'] ?? ''));
   $bufToken = trim((string)($in['buffer_access_token'] ?? ''));
   $pubUrl = trim((string)($in['public_base_url'] ?? ''));
@@ -258,28 +415,14 @@ try {
   $metaFb = trim((string)($in['meta_facebook_page_id'] ?? ''));
   $test = !empty($in['test']);
 
-  if($test && $newKey){
-   $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='.$newKey);
-   $testPayload = json_encode(['contents'=>[['parts'=>[['text'=>'hi']]]]], JSON_UNESCAPED_SLASHES);
-   curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 15,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-    CURLOPT_POSTFIELDS => $testPayload
-   ]);
-   $resRaw = curl_exec($ch);
-   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-   curl_close($ch);
-   if($code !== 200){
-    $res = json_decode($resRaw ?: '', true);
-    $msg = $res['error']['message'] ?? 'Invalid Gemini API Key (HTTP '.$code.')';
-    out(['error' => 'Gemini test failed: '.$msg], 400);
+  if($test && !empty($finalKeys)){
+   $testRes = testGeminiApiKey($finalKeys[0]);
+   if(!$testRes['ok']){
+    out(['error' => 'Gemini test failed for primary key: ' . $testRes['error']], 400);
    }
   }
 
   $curPass = $newPass ?: ($c['admin_password'] ?? 'admin123');
-  $finalKey = ($newKey !== '') ? $newKey : ($c['gemini_api_key'] ?? '');
   $finalBuf = ($bufToken !== '') ? $bufToken : ($c['buffer_access_token'] ?? '');
   $finalPub = ($pubUrl !== '') ? $pubUrl : ($c['public_base_url'] ?? '');
   $finalMetaTok = ($metaToken !== '') ? $metaToken : ($c['meta_access_token'] ?? '');
@@ -290,55 +433,45 @@ try {
   $content = "<?php
 return [
 "
-   . "  'admin_password' => " . var_export($curPass, true) . ",
-"
-   . "  'gemini_api_key' => " . var_export($finalKey, true) . ",
-"
-   . "  'buffer_access_token' => " . var_export($finalBuf, true) . ",
-"
-   . "  'public_base_url' => " . var_export($finalPub, true) . ",
-"
-   . "  'meta_access_token' => " . var_export($finalMetaTok, true) . ",
-"
-   . "  'meta_instagram_id' => " . var_export($finalMetaIg, true) . ",
-"
-   . "  'meta_facebook_page_id' => " . var_export($finalMetaFb, true) . ",
-"
-   . "  'db_host' => " . var_export($c['db_host'] ?? 'localhost', true) . ",
-"
-   . "  'db_name' => " . var_export($c['db_name'] ?? '', true) . ",
-"
-   . "  'db_user' => " . var_export($c['db_user'] ?? '', true) . ",
-"
-   . "  'db_pass' => " . var_export($c['db_pass'] ?? '', true) . ",
-"
-   . "];
-";
+   . "  'admin_password' => " . var_export($curPass, true) . ",\n"
+   . "  'gemini_api_keys' => " . var_export($finalKeys, true) . ",\n"
+   . "  'gemini_api_key' => " . var_export($finalKeys[0] ?? '', true) . ",\n"
+   . "  'buffer_access_token' => " . var_export($finalBuf, true) . ",\n"
+   . "  'buffer_client_id' => " . var_export($c['buffer_client_id'] ?? '', true) . ",\n"
+   . "  'buffer_client_secret' => " . var_export($c['buffer_client_secret'] ?? '', true) . ",\n"
+   . "  'buffer_org_id' => " . var_export($c['buffer_org_id'] ?? '', true) . ",\n"
+   . "  'public_base_url' => " . var_export($finalPub, true) . ",\n"
+   . "  'meta_access_token' => " . var_export($finalMetaTok, true) . ",\n"
+   . "  'meta_instagram_id' => " . var_export($finalMetaIg, true) . ",\n"
+   . "  'meta_facebook_page_id' => " . var_export($finalMetaFb, true) . ",\n"
+   . "  'db_host' => " . var_export($c['db_host'] ?? 'localhost', true) . ",\n"
+   . "  'db_name' => " . var_export($c['db_name'] ?? '', true) . ",\n"
+   . "  'db_user' => " . var_export($c['db_user'] ?? '', true) . ",\n"
+   . "  'db_pass' => " . var_export($c['db_pass'] ?? '', true) . ",\n"
+   . "];\n";
   file_put_contents($configFile, $content, LOCK_EX);
+
   $c['admin_password'] = $curPass;
-  $c['gemini_api_key'] = $finalKey;
+  $c['gemini_api_keys'] = $finalKeys;
+  $c['gemini_api_key'] = $finalKeys[0] ?? '';
   $c['buffer_access_token'] = $finalBuf;
   $c['public_base_url'] = $finalPub;
   $c['meta_access_token'] = $finalMetaTok;
   $c['meta_instagram_id'] = $finalMetaIg;
   $c['meta_facebook_page_id'] = $finalMetaFb;
 
-  out(['ok' => true, 'message' => 'Settings saved successfully!']);
+  out([
+   'ok' => true,
+   'message' => 'Settings saved successfully! Loaded ' . count($finalKeys) . ' Gemini key(s).',
+   'keys_count' => count($finalKeys),
+   'gemini_keys' => $finalKeys
+  ]);
  }
  if($action==='draft'){
   csrf();$in=json_decode(file_get_contents('php://input'),true)?:[];
   $title=trim((string)($in['title']??''));$desc=trim((string)($in['description']??''));$url=(string)($in['url']??'');
   if(!$title||!$desc||!$url||strlen($title)>500||strlen($desc)>2000)out(['error'=>'Choose an article first'],422);
   $u=parse_url($url);if(!in_array(strtolower($u['host']??''),['fandomwire.com','www.fandomwire.com']))out(['error'=>'Invalid source URL'],422);
-  $key=$c['gemini_api_key']??'';
-  if(!$key){
-   $extCfg = dirname(dirname(__DIR__)).'/facebook-post-extractor/config.json';
-   if(file_exists($extCfg)){
-    $j = json_decode(file_get_contents($extCfg), true);
-    if(!empty($j['gemini_api_key'])) $key = $j['gemini_api_key'];
-   }
-  }
-  if(!$key||str_contains($key,'PASTE_'))out(['error'=>'Add a valid Gemini API key in Settings'],422);
 
   $prompt = "You are an entertainment news graphic editor for VOX BULLETIN. Return a JSON object with keys: headline, description, caption.\n\n"
    . "CRITICAL BRANDING RULES:\n"
@@ -352,11 +485,19 @@ return [
    . "Source Excerpt: " . $desc . "\n"
    . "URL: " . $url;
 
-  $payload=json_encode(['contents'=>[['parts'=>[['text'=>$prompt]]]],'generationConfig'=>['responseMimeType'=>'application/json','temperature'=>0.25]],JSON_UNESCAPED_SLASHES);
-  $ch=curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='.$key);curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>45,CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_POSTFIELDS=>$payload]);$raw=curl_exec($ch);$code=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
-  $res=json_decode($raw?:'',true);if($code!==200)out(['error'=>'Gemini API request failed','details'=>substr($res['error']['message']??'Unknown API error',0,300)],502);
-  $txt=$res['candidates'][0]['content']['parts'][0]['text']??'';$draft=json_decode($txt,true);
-  if(!is_array($draft)||empty($draft['headline'])||empty($draft['description'])||empty($draft['caption']))out(['error'=>'Gemini returned an unexpected response'],502);
+  $gCall = callGeminiWithFailover($prompt, $c, ['json' => true]);
+  if(!$gCall['ok']){
+   out(['error' => 'Gemini draft generation failed', 'details' => $gCall['error'] . (!empty($gCall['details']) ? ' — ' . $gCall['details'] : '')], 502);
+  }
+
+  $txt = $gCall['text'] ?? '';
+  $draft = json_decode($txt, true);
+  if(!is_array($draft) && preg_match('/\{[\s\S]*\}/', $txt, $m)){
+   $draft = json_decode($m[0], true);
+  }
+  if(!is_array($draft)||empty($draft['headline'])||empty($draft['description'])||empty($draft['caption'])){
+   out(['error'=>'Gemini returned an unexpected response format'], 502);
+  }
 
   $hlOut = cleanFandomWire(trim((string)$draft['headline']));
   $descOut = cleanFandomWire(trim((string)$draft['description']));
@@ -377,7 +518,15 @@ return [
   }
   $capOut = trim(preg_replace('/[ \t]{2,}/', ' ', $capOut));
 
-  out(['draft'=>['headline'=>mb_substr($hlOut,0,150),'description'=>$descOut,'caption'=>mb_substr($capOut,0,1500)]]);
+  out([
+   'draft' => [
+    'headline' => mb_substr($hlOut, 0, 150),
+    'description' => $descOut,
+    'caption' => mb_substr($capOut, 0, 1500)
+   ],
+   'key_used' => $gCall['key_used'] ?? '',
+   'failovers' => $gCall['failovers'] ?? 0
+  ]);
  }
  if($action==='channels'){
   csrf();
