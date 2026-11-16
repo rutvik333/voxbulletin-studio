@@ -117,7 +117,7 @@ function testGeminiApiKey($key) {
 		return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
 	}
 
-	$modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
+	$modelsToTry = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
 	$lastErr = '';
 	$lastCode = 0;
 	$quotaHitOn = [];
@@ -129,7 +129,8 @@ function testGeminiApiKey($key) {
 		curl_setopt_array($ch, [
 			CURLOPT_HTTPGET => true,
 			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_TIMEOUT => 15,
+			CURLOPT_TIMEOUT => 5,
+			CURLOPT_CONNECTTIMEOUT => 2,
 			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_SSL_VERIFYHOST => false,
 			CURLOPT_HTTPHEADER => ['User-Agent: VoxBulletin/2.0']
@@ -183,7 +184,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
 	}
 
 	$isJson = !empty($options['json']);
-	$preferredModel = $options['model'] ?? 'gemini-3.5-flash-lite';
+	$preferredModel = $options['model'] ?? 'gemini-flash-lite-latest';
 	$temperature = $options['temperature'] ?? 0.25;
 
 	$generationConfig = ['temperature' => $temperature];
@@ -198,7 +199,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
 		'generationConfig' => $generationConfig
 	], JSON_UNESCAPED_SLASHES);
 
-	$modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash']));
+	$modelsToTry = array_values(array_unique([$preferredModel, 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-3.5-flash']));
 	$errors = [];
 
 	foreach ($keys as $idx => $key) {
@@ -210,8 +211,8 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
 			curl_setopt_array($ch, [
 				CURLOPT_POST => true,
 				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_TIMEOUT => 18,
-				CURLOPT_CONNECTTIMEOUT => 6,
+				CURLOPT_TIMEOUT => 9,
+				CURLOPT_CONNECTTIMEOUT => 3,
 				CURLOPT_SSL_VERIFYPEER => false,
 				CURLOPT_SSL_VERIFYHOST => false,
 				CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
@@ -243,7 +244,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
 				continue;
 			}
 
-			if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
+			if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
 				continue;
 			}
 

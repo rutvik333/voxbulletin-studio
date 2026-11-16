@@ -335,7 +335,7 @@ if (!function_exists('callGeminiWithFailover')) {
         }
 
         $isJson = !empty($options['json']);
-        $preferredModel = $options['model'] ?? 'gemini-3.5-flash-lite';
+        $preferredModel = $options['model'] ?? 'gemini-flash-lite-latest';
         $temperature = $options['temperature'] ?? 0.25;
 
         $generationConfig = ['temperature' => $temperature];
@@ -350,7 +350,7 @@ if (!function_exists('callGeminiWithFailover')) {
             'generationConfig' => $generationConfig
         ], JSON_UNESCAPED_SLASHES);
 
-        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash']));
+        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-3.5-flash']));
         $errors = [];
 
         foreach ($keys as $idx => $key) {
@@ -362,8 +362,8 @@ if (!function_exists('callGeminiWithFailover')) {
                 curl_setopt_array($ch, [
                     CURLOPT_POST => true,
                     CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT => 18,
-                    CURLOPT_CONNECTTIMEOUT => 6,
+                    CURLOPT_TIMEOUT => 9,
+                    CURLOPT_CONNECTTIMEOUT => 3,
                     CURLOPT_SSL_VERIFYPEER => false,
                     CURLOPT_SSL_VERIFYHOST => false,
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'User-Agent: VoxBulletin/2.0'],
@@ -395,7 +395,7 @@ if (!function_exists('callGeminiWithFailover')) {
                     continue;
                 }
 
-                if ($code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
+                if ($code === 0 || $code === 404 || stripos($errMsg, 'no longer available') !== false || stripos($errMsg, 'not found') !== false) {
                     continue;
                 }
 
@@ -640,7 +640,7 @@ $prompt = "You are an entertainment news graphic editor for VOX BULLETIN. Return
         . "Source Title: " . $chosen['title'] . "\n"
         . "Source Excerpt: " . $cleanSourceDesc;
 
-$gCall = callGeminiWithFailover($prompt, $config, ['json' => true, 'model' => 'gemini-3.5-flash-lite']);
+$gCall = callGeminiWithFailover($prompt, $config, ['json' => true, 'model' => 'gemini-flash-lite-latest']);
 if (!empty($gCall['ok'])) {
     $rawTxt = $gCall['text'] ?? '';
     if (preg_match('/\{[\s\S]*\}/', $rawTxt, $m)) {
