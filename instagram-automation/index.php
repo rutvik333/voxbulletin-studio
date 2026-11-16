@@ -92,7 +92,51 @@ input:checked + .slider:before{transform:translateX(20px)}
 .key-actions{display:flex;gap:6px;align-items:center}
 </style></head><body>
 <div id="login" class="login <?= $authed?'hide':'' ?>"><div class="brand">VOX <span>BULLETIN</span></div><p class="sub">CONTENT STUDIO</p><h1>Welcome back</h1><p class="muted">Sign in to your private news creation dashboard.</p><form id="loginForm"><div class="field"><label>ADMIN PASSWORD</label><input id="password" type="password" required autocomplete="current-password"></div><button class="btn" style="width:100%">Sign in</button></form><div id="loginErr" class="status"></div></div>
-<div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navAutomation" onclick="showPage('automation')">⚡ 3x/Day Auto-Post</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button type="button" class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2>02 / Generate content</h2><span class="pill" style="background:#132b40;color:#38bdf8;border:1px solid #285372;font-size:11px;font-weight:700">DRAFT ONLY • DOES NOT PUBLISH</span></div><div class="muted">Gemini writes an original draft from the selected source excerpt. <strong>This does NOT publish to social media</strong> — publishing only happens when you explicitly click the green "🚀 Publish to Selected Channels" button in Section 03.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button type="button" class="btn blue" onclick="generate(event)" id="generateBtn">✦ Generate with Gemini (Draft Only)</button><button type="button" class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button type="button" class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
+<div id="app" class="shell <?= $authed?'':'hide' ?>"><aside class="sidebar"><div><div class="brand">VOX <span>BULLETIN</span></div><div class="sub">CONTENT STUDIO</div></div><div class="nav"><button id="navCreate" class="active" onclick="showPage('create')">✦ Create Post</button><button id="navLibrary" onclick="showPage('library')">▣ Post Library</button><button id="navAutomation" onclick="showPage('automation')">⚡ 3x/Day Auto-Post</button><button id="navSettings" onclick="showPage('settings')">⚙ API Settings</button><button onclick="logout()">↪ Logout</button></div></aside><main class="main"><div class="top"><div><h1 id="pageTitle">Create news post</h1><div class="muted">Discover, design and save social-ready entertainment posts.</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn alt small" onclick="showPage('settings')">⚙ Settings</button><span id="topPill" class="pill">● TODAY'S FEED</span></div></div><div id="createPage" class="layout"><section><div class="panel"><h2>01 / Discover news</h2><div class="muted">Today's top entertainment headlines with thumbnails. Select any story to auto-apply.</div><button type="button" class="btn blue" onclick="fetchNews()" id="fetchBtn">↻ Fetch today's news</button><div class="status" id="newsStatus">Click fetch to load articles.</div><div id="stories" class="stories"></div></div><div class="panel" style="margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2>02 / Generate content</h2><span class="pill" style="background:#132b40;color:#38bdf8;border:1px solid #285372;font-size:11px;font-weight:700">DRAFT ONLY • DOES NOT PUBLISH</span></div><div class="muted">Gemini writes an original draft from the selected source excerpt. <strong>This does NOT publish to social media</strong> — publishing only happens when you explicitly click the green "🚀 Publish to Selected Channels" button in Section 03.</div><div class="field"><label>ORIGINAL ARTICLE TITLE</label><textarea id="sourceTitle" rows="2" readonly></textarea></div><div class="field"><label>POST HEADLINE</label><textarea id="headline" rows="3" placeholder="Your post headline"></textarea></div><div class="field"><label>SHORT DESCRIPTION</label><textarea id="description" rows="3" placeholder="Short summary of the news"></textarea></div><div class="field"><label>INSTAGRAM / FACEBOOK CAPTION (FULL STORY)</label><textarea id="caption" rows="4" placeholder="Ready-to-publish detailed caption for Instagram & Facebook"></textarea></div><div class="field"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label style="margin-bottom:0">X / TWITTER POST <span style="font-size:11px;font-weight:400;color:#94a3b8">(STRICT 280-CHAR LIMIT)</span></label><span id="xCharCounter" style="font-size:12px;font-weight:700;color:#38bdf8">0 / 280</span></div><textarea id="captionX" rows="3" maxlength="280" placeholder="Concise post tailored for X / Twitter with #voxbulletin"></textarea><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><p class="muted" style="margin:0;font-size:11px">Auto-optimized for Twitter/X's 280-char limit with #voxbulletin.</p><button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="syncTwitterPost()">↻ Re-sync for X</button></div></div><div class="actions"><button type="button" class="btn blue" onclick="generate(event)" id="generateBtn">✦ Generate with Gemini (Draft Only)</button><button type="button" class="btn alt" onclick="render()">Refresh preview</button></div></div></section><section><div class="panel"><h2>03 / Design & export</h2><div class="muted">1080 × 1350 · Cinematic navy · Bold headline · Vox Bulletin branding</div><div class="preview-wrap"><canvas id="poster" width="1080" height="1350"></canvas></div>
+<div class="quick-design-toolbar" style="background:#09192e;border:1px solid #1c3d69;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="font-size:12px;font-weight:700;color:#cbd5e1;display:flex;align-items:center;gap:6px"><span>🎨</span> QUICK DESIGN &amp; TYPOGRAPHY</span>
+    <button type="button" class="btn alt small" style="padding:2px 8px;font-size:11px" onclick="showPage('settings')">⚙ Open All Settings</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+    <div>
+      <label style="font-size:11px;color:#94a3b8;margin-bottom:3px;display:block">TITLE FONT SIZE</label>
+      <select id="quickHlFontSize" style="padding:5px 8px;font-size:12px;background:#0d1e36;color:#fff;border:1px solid #285372;border-radius:6px;width:100%" onchange="setQuickHlFont(this.value)">
+        <option value="0">Auto (Dynamic 68px)</option>
+        <option value="56">Small (56px)</option>
+        <option value="64">Medium (64px)</option>
+        <option value="72">Large (72px)</option>
+        <option value="80">Extra Large (80px)</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:#94a3b8;margin-bottom:3px;display:block">DESC FONT SIZE</label>
+      <select id="quickDescFontSize" style="padding:5px 8px;font-size:12px;background:#0d1e36;color:#fff;border:1px solid #285372;border-radius:6px;width:100%" onchange="setQuickDescFont(this.value)">
+        <option value="0">Auto (Default 24px)</option>
+        <option value="20">Compact (20px)</option>
+        <option value="24">Standard (24px)</option>
+        <option value="28">Medium (28px)</option>
+        <option value="32">Large (32px)</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:#94a3b8;margin-bottom:3px;display:block">TOP LOGO POSITION</label>
+      <select id="quickLogoAlign" style="padding:5px 8px;font-size:12px;background:#0d1e36;color:#fff;border:1px solid #285372;border-radius:6px;width:100%" onchange="setQuickLogoAlign(this.value)">
+        <option value="top-right">Top Right (Default)</option>
+        <option value="top-left">Top Left</option>
+        <option value="top-center">Top Center</option>
+        <option value="hidden">Hidden</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:#94a3b8;margin-bottom:3px;display:block">BOTTOM "VOX BULLETIN" BAR</label>
+      <select id="quickFooterBrand" style="padding:5px 8px;font-size:12px;background:#0d1e36;color:#fff;border:1px solid #285372;border-radius:6px;width:100%" onchange="setQuickFooterBrand(this.value)">
+        <option value="1">Visible (Dividers + Brand)</option>
+        <option value="0">Hidden (Clean Minimal)</option>
+      </select>
+    </div>
+  </div>
+</div><div class="field"><label>TOPIC IMAGE (AUTO-APPLIED OR CUSTOM)</label><input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp"><p class="muted">Topic image is automatically applied when selecting an article. You can also upload your own.</p><button type="button" class="btn alt small" onclick="loadSourceImage()">Reload source image</button></div><div class="field"><label>BRAND LOGO (OPTIONAL)</label><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp"></div>
 <div class="crosspost-box">
   <div class="crosspost-title">
     <h3><span>🚀</span> Cross-Post to Social Accounts</h3>
@@ -455,6 +499,119 @@ input:checked + .slider:before{transform:translateX(20px)}
   <div id="connectedChannelsList"></div>
 </div>
 
+<!-- Section 5: Poster Graphic & Typography Design Settings -->
+<div class="panel" style="max-width:760px;margin:24px auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;background:#1e3a8a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🎨</div>
+      <div>
+        <h2 style="font-size:20px;margin:0 0 4px">Poster Graphic &amp; Typography Design Settings</h2>
+        <div class="muted">Manage font sizes, logo placement, brand visibility, and color styling for both studio posts and 3x/day automated graphics.</div>
+      </div>
+    </div>
+    <span id="designPill" class="pill" style="background:#132b40;color:#38bdf8;border:1px solid #285372">● ACTIVE DEFAULTS</span>
+  </div>
+  <div class="divider"></div>
+
+  <form id="designSettingsForm" onsubmit="saveDesignSettings(event)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <!-- Title Font Size -->
+      <div class="field" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="margin:0;font-weight:700">POST TITLE FONT SIZE</label>
+          <span id="hlFontSizeBadge" style="font-size:12px;font-weight:700;color:#ffd12a">Auto (Dynamic)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="range" id="settingHlFontSize" min="0" max="84" step="2" value="0" style="flex:1" oninput="onSettingHlSlider(this.value)">
+          <select id="settingHlFontSizePreset" style="width:130px;padding:6px;font-size:12px" onchange="applyHlPreset(this.value)">
+            <option value="0">Auto (Default)</option>
+            <option value="56">Small (56px)</option>
+            <option value="64">Medium (64px)</option>
+            <option value="72">Large (72px)</option>
+            <option value="80">Extra Large (80px)</option>
+          </select>
+        </div>
+        <p class="muted" style="margin-top:4px;font-size:11px">Auto automatically balances between 62px–74px depending on headline word count.</p>
+      </div>
+
+      <!-- Description Font Size -->
+      <div class="field" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="margin:0;font-weight:700">DESCRIPTION FONT SIZE</label>
+          <span id="descFontSizeBadge" style="font-size:12px;font-weight:700;color:#ffd12a">Auto (24px)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="range" id="settingDescFontSize" min="0" max="36" step="1" value="0" style="flex:1" oninput="onSettingDescSlider(this.value)">
+          <select id="settingDescFontSizePreset" style="width:130px;padding:6px;font-size:12px" onchange="applyDescPreset(this.value)">
+            <option value="0">Auto (Default)</option>
+            <option value="20">Compact (20px)</option>
+            <option value="24">Standard (24px)</option>
+            <option value="28">Medium (28px)</option>
+            <option value="32">Large (32px)</option>
+          </select>
+        </div>
+        <p class="muted" style="margin-top:4px;font-size:11px">Controls the legibility of the 1–2 sentence summary below the title.</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <!-- Top Logo Alignment -->
+      <div class="field" style="margin-bottom:0">
+        <label style="font-weight:700">TOP 3D GLOBE LOGO ALIGNMENT</label>
+        <select id="settingLogoAlignment" onchange="onDesignInputChange()">
+          <option value="top-right">Top Right (Default with VoxBulletin Pill)</option>
+          <option value="top-left">Top Left (With VoxBulletin Pill)</option>
+          <option value="top-center">Top Center (Centered Logo)</option>
+          <option value="hidden">Hide Logo Completely</option>
+        </select>
+        <p class="muted" style="margin-top:4px;font-size:11px">Position of the translucent 3D Globe + VoxBulletin branding badge.</p>
+      </div>
+
+      <!-- Bottom Branding Visibility -->
+      <div class="field" style="margin-bottom:0">
+        <label style="font-weight:700">BOTTOM "VOX BULLETIN" DIVIDER BAR</label>
+        <select id="settingFooterBranding" onchange="onDesignInputChange()">
+          <option value="1">Visible (Default: Dividers + VOX BULLETIN)</option>
+          <option value="0">Hidden (Clean bottom without dividers)</option>
+        </select>
+        <p class="muted" style="margin-top:4px;font-size:11px">Show or hide the lower brand separator at the bottom of the poster.</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <!-- Headline Casing -->
+      <div class="field" style="margin-bottom:0">
+        <label style="font-weight:700">HEADLINE TEXT CASING</label>
+        <select id="settingHeadlineCase" onchange="onDesignInputChange()">
+          <option value="uppercase">ALL-CAPS (High Impact - Default)</option>
+          <option value="titlecase">Title Case (First Letters Capitalized)</option>
+          <option value="original">Original / As Written (Sentence Case)</option>
+        </select>
+      </div>
+
+      <!-- Headline Palette Theme -->
+      <div class="field" style="margin-bottom:0">
+        <label style="font-weight:700">HEADLINE COLOR PALETTE THEME</label>
+        <select id="settingColorPalette" onchange="onDesignInputChange()">
+          <option value="gold-cyan">Electric Yellow &amp; Sky Blue (#ffd12a, #00d2ff)</option>
+          <option value="orange-cyan">Sunset Orange &amp; Sky Blue (#ff9100, #00d2ff)</option>
+          <option value="green-gold">Neon Green &amp; Yellow (#00e676, #ffd12a)</option>
+          <option value="pink-cyan">Hot Pink &amp; Sky Blue (#f472b6, #00d2ff)</option>
+          <option value="violet-cyan">Electric Violet &amp; Sky Blue (#c084fc, #00d2ff)</option>
+          <option value="white">Pure Minimal White (#ffffff, #ffffff)</option>
+          <option value="auto">Dynamic / Auto per story (Cycle vibrant duos)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:16px">
+      <button type="submit" class="btn blue" id="saveDesignBtn">💾 Save Graphic Design Settings</button>
+      <button type="button" class="btn alt" onclick="resetDesignSettingsDefaults()">↺ Reset to Factory Defaults</button>
+    </div>
+    <div id="designMsg" class="status"></div>
+  </form>
+</div>
+
 </div>
 </main></div>
 <script>
@@ -518,6 +675,37 @@ const THEME_PALETTES = [
 ];
 let currentTheme = ['#ffd12a', '#00d2ff'];
 let colorA = currentTheme[0], colorB = currentTheme[1];
+
+let postDesignConfig = {
+  headlineFontSize: 0,
+  descriptionFontSize: 0,
+  logoAlignment: 'top-right',
+  footerBranding: true,
+  headlineCase: 'uppercase',
+  colorPalette: 'gold-cyan'
+};
+
+const PALETTE_MAP = {
+  'gold-cyan': ['#ffd12a', '#00d2ff'],
+  'orange-cyan': ['#ff9100', '#00d2ff'],
+  'green-gold': ['#00e676', '#ffd12a'],
+  'pink-cyan': ['#f472b6', '#00d2ff'],
+  'violet-cyan': ['#c084fc', '#00d2ff'],
+  'white': ['#ffffff', '#ffffff']
+};
+
+function toTitleCase(str) {
+  if(!str) return '';
+  return str.toLowerCase().replace(/(?:^|\s|\/|-)\w/g, m => m.toUpperCase());
+}
+
+function applyDesignPalette(key) {
+  if (key && PALETTE_MAP[key]) {
+    currentTheme = PALETTE_MAP[key];
+    colorA = currentTheme[0];
+    colorB = currentTheme[1];
+  }
+}
 
 function cleanSourceText(text){
   if(!text) return '';
@@ -1351,7 +1539,159 @@ async function loadSettings(){
         sp.style.background = '#382215'; sp.style.borderColor = '#784920'; sp.style.color = '#ffd699';
       }
     }
+    // Graphic & Typography Design settings
+    if (j.post_headline_font_size !== undefined) {
+      postDesignConfig.headlineFontSize = parseInt(j.post_headline_font_size, 10) || 0;
+      postDesignConfig.descriptionFontSize = parseInt(j.post_description_font_size, 10) || 0;
+      postDesignConfig.logoAlignment = j.post_logo_alignment || 'top-right';
+      postDesignConfig.footerBranding = j.post_footer_branding !== false;
+      postDesignConfig.headlineCase = j.post_headline_case || 'uppercase';
+      postDesignConfig.colorPalette = j.post_color_palette || 'gold-cyan';
+
+      syncDesignUI();
+      applyDesignPalette(postDesignConfig.colorPalette);
+      render();
+    }
   }catch(e){console.error('loadSettings error:', e)}
+}
+
+function syncDesignUI(){
+  if($('settingHlFontSize')) $('settingHlFontSize').value = postDesignConfig.headlineFontSize;
+  if($('settingHlFontSizePreset')) $('settingHlFontSizePreset').value = [0,56,64,72,80].includes(postDesignConfig.headlineFontSize) ? postDesignConfig.headlineFontSize : '0';
+  if($('hlFontSizeBadge')) $('hlFontSizeBadge').textContent = postDesignConfig.headlineFontSize === 0 ? 'Auto (Dynamic)' : (postDesignConfig.headlineFontSize + 'px');
+
+  if($('settingDescFontSize')) $('settingDescFontSize').value = postDesignConfig.descriptionFontSize;
+  if($('settingDescFontSizePreset')) $('settingDescFontSizePreset').value = [0,20,24,28,32].includes(postDesignConfig.descriptionFontSize) ? postDesignConfig.descriptionFontSize : '0';
+  if($('descFontSizeBadge')) $('descFontSizeBadge').textContent = postDesignConfig.descriptionFontSize === 0 ? 'Auto (24px)' : (postDesignConfig.descriptionFontSize + 'px');
+
+  if($('settingLogoAlignment')) $('settingLogoAlignment').value = postDesignConfig.logoAlignment;
+  if($('settingFooterBranding')) $('settingFooterBranding').value = postDesignConfig.footerBranding ? '1' : '0';
+  if($('settingHeadlineCase')) $('settingHeadlineCase').value = postDesignConfig.headlineCase;
+  if($('settingColorPalette')) $('settingColorPalette').value = postDesignConfig.colorPalette;
+
+  if($('quickHlFontSize')) $('quickHlFontSize').value = [0,56,64,72,80].includes(postDesignConfig.headlineFontSize) ? postDesignConfig.headlineFontSize : '0';
+  if($('quickDescFontSize')) $('quickDescFontSize').value = [0,20,24,28,32].includes(postDesignConfig.descriptionFontSize) ? postDesignConfig.descriptionFontSize : '0';
+  if($('quickLogoAlign')) $('quickLogoAlign').value = postDesignConfig.logoAlignment;
+  if($('quickFooterBrand')) $('quickFooterBrand').value = postDesignConfig.footerBranding ? '1' : '0';
+}
+
+function onSettingHlSlider(val){
+  const num = parseInt(val, 10) || 0;
+  postDesignConfig.headlineFontSize = num;
+  if($('hlFontSizeBadge')) $('hlFontSizeBadge').textContent = num === 0 ? 'Auto (Dynamic)' : (num + 'px');
+  if($('settingHlFontSizePreset')) $('settingHlFontSizePreset').value = [0,56,64,72,80].includes(num) ? num : '0';
+  if($('quickHlFontSize')) $('quickHlFontSize').value = [0,56,64,72,80].includes(num) ? num : '0';
+  render();
+}
+
+function applyHlPreset(val){
+  const num = parseInt(val, 10) || 0;
+  postDesignConfig.headlineFontSize = num;
+  if($('settingHlFontSize')) $('settingHlFontSize').value = num;
+  if($('hlFontSizeBadge')) $('hlFontSizeBadge').textContent = num === 0 ? 'Auto (Dynamic)' : (num + 'px');
+  if($('quickHlFontSize')) $('quickHlFontSize').value = [0,56,64,72,80].includes(num) ? num : '0';
+  render();
+}
+
+function setQuickHlFont(val){
+  applyHlPreset(val);
+}
+
+function onSettingDescSlider(val){
+  const num = parseInt(val, 10) || 0;
+  postDesignConfig.descriptionFontSize = num;
+  if($('descFontSizeBadge')) $('descFontSizeBadge').textContent = num === 0 ? 'Auto (24px)' : (num + 'px');
+  if($('settingDescFontSizePreset')) $('settingDescFontSizePreset').value = [0,20,24,28,32].includes(num) ? num : '0';
+  if($('quickDescFontSize')) $('quickDescFontSize').value = [0,20,24,28,32].includes(num) ? num : '0';
+  render();
+}
+
+function applyDescPreset(val){
+  const num = parseInt(val, 10) || 0;
+  postDesignConfig.descriptionFontSize = num;
+  if($('settingDescFontSize')) $('settingDescFontSize').value = num;
+  if($('descFontSizeBadge')) $('descFontSizeBadge').textContent = num === 0 ? 'Auto (24px)' : (num + 'px');
+  if($('quickDescFontSize')) $('quickDescFontSize').value = [0,20,24,28,32].includes(num) ? num : '0';
+  render();
+}
+
+function setQuickDescFont(val){
+  applyDescPreset(val);
+}
+
+function setQuickLogoAlign(val){
+  postDesignConfig.logoAlignment = val;
+  if($('settingLogoAlignment')) $('settingLogoAlignment').value = val;
+  render();
+}
+
+function setQuickFooterBrand(val){
+  postDesignConfig.footerBranding = (val === '1');
+  if($('settingFooterBranding')) $('settingFooterBranding').value = val;
+  render();
+}
+
+function onDesignInputChange(){
+  if($('settingLogoAlignment')) postDesignConfig.logoAlignment = $('settingLogoAlignment').value;
+  if($('settingFooterBranding')) postDesignConfig.footerBranding = ($('settingFooterBranding').value === '1');
+  if($('settingHeadlineCase')) postDesignConfig.headlineCase = $('settingHeadlineCase').value;
+  if($('settingColorPalette')){
+    postDesignConfig.colorPalette = $('settingColorPalette').value;
+    applyDesignPalette(postDesignConfig.colorPalette);
+  }
+  syncDesignUI();
+  render();
+}
+
+async function saveDesignSettings(e){
+  if(e && e.preventDefault) e.preventDefault();
+  const b = $('saveDesignBtn');
+  if(b) b.disabled = true;
+  const msg = $('designMsg');
+  if(msg){
+    msg.textContent = 'Saving design settings...';
+    msg.className = 'status';
+  }
+  try{
+    onDesignInputChange();
+    const res = await req('save_settings', {
+      method: 'POST',
+      body: JSON.stringify({
+        post_headline_font_size: postDesignConfig.headlineFontSize,
+        post_description_font_size: postDesignConfig.descriptionFontSize,
+        post_logo_alignment: postDesignConfig.logoAlignment,
+        post_footer_branding: postDesignConfig.footerBranding,
+        post_headline_case: postDesignConfig.headlineCase,
+        post_color_palette: postDesignConfig.colorPalette
+      })
+    });
+    if(msg){
+      msg.textContent = '✓ Graphic design settings saved! Applied to manual studio & 3x/day automated posts.';
+      msg.className = 'status';
+    }
+  }catch(err){
+    if(msg){
+      msg.textContent = '✕ ' + err.message;
+      msg.className = 'status error';
+    }
+  }finally{
+    if(b) b.disabled = false;
+  }
+}
+
+async function resetDesignSettingsDefaults(){
+  postDesignConfig = {
+    headlineFontSize: 0,
+    descriptionFontSize: 0,
+    logoAlignment: 'top-right',
+    footerBranding: true,
+    headlineCase: 'uppercase',
+    colorPalette: 'gold-cyan'
+  };
+  syncDesignUI();
+  applyDesignPalette('gold-cyan');
+  render();
+  await saveDesignSettings();
 }
 
 async function saveSettings(e){
@@ -1715,72 +2055,85 @@ function render(){
   ctx.fillRect(0,720,W,H-720);
 
   // 3. Brand Logo: 3D Globe Logo (image.png) + Vertically Centered VoxBulletin Text
-  if(logo){
-    const k=Math.min(180/logo.width,50/logo.height);
-    ctx.drawImage(logo,W-55-logo.width*k,48,logo.width*k,logo.height*k);
-  } else {
-    ctx.save();
-    const logoSize = 44;
-    const gap = 12;
-    const logoText = 'VoxBulletin';
+  const logoAlign = postDesignConfig.logoAlignment || 'top-right';
+  if(logoAlign !== 'hidden'){
+    if(logo){
+      const k=Math.min(180/logo.width,50/logo.height);
+      const lw = logo.width*k;
+      let lx = W - 55 - lw;
+      if(logoAlign === 'top-left') lx = 55;
+      else if(logoAlign === 'top-center') lx = Math.round((W - lw) / 2);
+      ctx.drawImage(logo,lx,48,lw,logo.height*k);
+    } else {
+      ctx.save();
+      const logoSize = 44;
+      const gap = 12;
+      const logoText = 'VoxBulletin';
 
-    ctx.font = '800 28px "DM Sans",Arial,sans-serif';
-    const tw = ctx.measureText(logoText).width;
-    const totalLogoW = logoSize + gap + tw;
-    const topY = 48;
-    const startX = W - 55 - totalLogoW;
+      ctx.font = '800 28px "DM Sans",Arial,sans-serif';
+      const tw = ctx.measureText(logoText).width;
+      const totalLogoW = logoSize + gap + tw;
+      const topY = 48;
+      
+      let startX = W - 55 - totalLogoW;
+      if(logoAlign === 'top-left') startX = 55;
+      else if(logoAlign === 'top-center') startX = Math.round((W - totalLogoW) / 2);
 
-    // Sleek translucent dark backing pill for 100% legibility on any photo
-    const padX = 16, padY = 9;
-    const pillW = totalLogoW + padX * 2;
-    const pillH = logoSize + padY * 2;
-    ctx.fillStyle = 'rgba(0, 18, 38, 0.72)';
-    drawRoundedRect(ctx, startX - padX, topY - padY, pillW, pillH, 16);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+      // Sleek translucent dark backing pill for 100% legibility on any photo
+      const padX = 16, padY = 9;
+      const pillW = totalLogoW + padX * 2;
+      const pillH = logoSize + padY * 2;
+      ctx.fillStyle = 'rgba(0, 18, 38, 0.72)';
+      drawRoundedRect(ctx, startX - padX, topY - padY, pillW, pillH, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-    // Draw 3D Globe Logo (image.png / brand-globe.png)
-    if(brandGlobeImg && brandGlobeImg.complete && brandGlobeImg.naturalWidth > 0){
-      ctx.drawImage(brandGlobeImg, startX, topY, logoSize, logoSize);
+      // Draw 3D Globe Logo (image.png / brand-globe.png)
+      if(brandGlobeImg && brandGlobeImg.complete && brandGlobeImg.naturalWidth > 0){
+        ctx.drawImage(brandGlobeImg, startX, topY, logoSize, logoSize);
+      }
+
+      // Draw VoxBulletin text perfectly centered vertically to the logo
+      const centerY = topY + logoSize / 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 28px "DM Sans",Arial,sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(logoText, startX + logoSize + gap, centerY);
+      ctx.restore();
     }
-
-    // Draw VoxBulletin text perfectly centered vertically to the logo
-    const centerY = topY + logoSize / 2;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '800 28px "DM Sans",Arial,sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(logoText, startX + logoSize + gap, centerY);
-    ctx.restore();
   }
 
   // 4. Headline sizing & line-wrapping (max-width 960 to prevent orphan single words)
-  const headline=($('headline').value||'YOUR ENTERTAINMENT HEADLINE').toUpperCase().trim();
+  const rawHl = $('headline').value || 'YOUR ENTERTAINMENT HEADLINE';
+  const hlCase = postDesignConfig.headlineCase || 'uppercase';
+  let headline = rawHl.trim();
+  if (hlCase === 'uppercase') headline = headline.toUpperCase();
+  else if (hlCase === 'titlecase') headline = toTitleCase(headline);
+
   const words=headline.replace(/\*/g,'').split(/\s+/).filter(Boolean);
   const wordCount=words.length;
 
-  let hlFont=68;
-  if(wordCount<=6)hlFont=74;
-  else if(wordCount<=12)hlFont=68;
-  else hlFont=62;
+  const customHl = parseInt(postDesignConfig.headlineFontSize, 10) || 0;
+  let hlFont = customHl > 0 ? customHl : (wordCount<=6 ? 74 : (wordCount<=12 ? 68 : 62));
 
   let lines=[];
   do{
     ctx.font='900 '+hlFont+'px "Barlow Condensed",Impact,sans-serif';
     lines=wrapLines(ctx,headline.replace(/\*/g,''),960,4);
+    if(customHl > 0) break;
     hlFont-=2;
   }while(hlFont>46&&(lines.some(l=>l.endsWith('…'))||(lines.length>1&&lines[lines.length-1].split(/\s+/).length===1&&lines[lines.length-1].length<=5&&hlFont>=58)));
-  const finalHlFont=hlFont+2;
+  const finalHlFont = customHl > 0 ? customHl : (hlFont+2);
   const hlLineH=Math.round(finalHlFont*1.13);
 
   // 5. Description sizing & line-wrapping (strictly fits 4-5 complete lines without truncation)
   const desc=($('description').value||'Your concise story summary will appear here.').trim();
   const descLen=desc.length;
-  let descFont=25;
-  if(descLen>225)descFont=23;
-  if(descLen>280)descFont=21;
+  const customDesc = parseInt(postDesignConfig.descriptionFontSize, 10) || 0;
+  let descFont = customDesc > 0 ? customDesc : (descLen>280 ? 21 : (descLen>225 ? 23 : 25));
 
   ctx.font='500 '+descFont+'px "DM Sans",Arial,sans-serif';
   const dl=wrapLines(ctx,desc,940,5);
@@ -1828,20 +2181,22 @@ function render(){
     });
   }
 
-  // 9. Centered Vox Bulletin brand with glowing dividers
-  ctx.strokeStyle='rgba(255,255,255,0.7)';
-  ctx.lineWidth=1.5;
-  ctx.beginPath();
-  ctx.moveTo(270,footerY);
-  ctx.lineTo(430,footerY);
-  ctx.moveTo(650,footerY);
-  ctx.lineTo(810,footerY);
-  ctx.stroke();
+  // 9. Centered Vox Bulletin brand with glowing dividers (Optional visibility)
+  if (postDesignConfig.footerBranding !== false) {
+    ctx.strokeStyle='rgba(255,255,255,0.7)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(270,footerY);
+    ctx.lineTo(430,footerY);
+    ctx.moveTo(650,footerY);
+    ctx.lineTo(810,footerY);
+    ctx.stroke();
 
-  ctx.fillStyle='#ffffff';
-  ctx.font='700 20px "DM Sans",Arial,sans-serif';
-  ctx.textAlign='center';
-  ctx.fillText('VOX   BULLETIN',540,footerY+7);
+    ctx.fillStyle='#ffffff';
+    ctx.font='700 20px "DM Sans",Arial,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('VOX   BULLETIN',540,footerY+7);
+  }
 }
 ['headline','description'].forEach(id=>$(id).addEventListener('input',render));if($('captionX'))$('captionX').addEventListener('input',updateXCounter);document.fonts.ready.then(render);render();if(csrf){loadSettings();loadChannels();fetchNews();}
 function download(){render();const a=document.createElement('a');a.href=$('poster').toDataURL('image/png');a.download='vox-bulletin-'+Date.now()+'.png';a.click()}

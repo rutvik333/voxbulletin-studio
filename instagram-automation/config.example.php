@@ -19,6 +19,12 @@ return [
   'smtp_user' => 'your-email@gmail.com',
   'smtp_pass' => 'YOUR_GMAIL_16_CHAR_APP_PASSWORD',
   'smtp_encryption' => 'ssl',
+  'post_headline_font_size' => 0, // 0 = Auto (Dynamic 62-74px), or custom px (e.g. 56, 64, 72)
+  'post_description_font_size' => 0, // 0 = Auto (24px), or custom px (e.g. 20, 24, 28)
+  'post_logo_alignment' => 'top-right', // 'top-right', 'top-left', 'top-center', 'hidden'
+  'post_footer_branding' => true, // true = Show bottom VOX BULLETIN bar, false = Hidden
+  'post_headline_case' => 'uppercase', // 'uppercase', 'titlecase', 'original'
+  'post_color_palette' => 'gold-cyan', // 'gold-cyan', 'orange-cyan', 'green-gold', 'pink-cyan', 'violet-cyan', 'white', 'auto'
   'db_host' => 'localhost',
   'db_name' => '',
   'db_user' => '',

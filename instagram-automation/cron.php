@@ -78,7 +78,7 @@ function wrapTextTtf($size, $angle, $font, $text, $maxWidth) {
     return $lines;
 }
 
-function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $palette = ['#ffd12a', '#00d2ff']) {
+function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $palette = ['#ffd12a', '#00d2ff'], $options = []) {
     $W = 1080;
     $H = 1350;
     $im = imagecreatetruecolor($W, $H);
@@ -127,40 +127,63 @@ function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $
     }
     imagefilledrectangle($im, 0, 720, $W, $H, $bgNavy);
 
-    // 3. Brand Globe Logo (top right)
-    $globePath = __DIR__ . '/brand-globe.png';
-    if (file_exists($globePath)) {
-        $globe = imagecreatefrompng($globePath);
-        if ($globe) {
-            $logoSize = 44;
-            $topY = 48;
-            $fontInter = __DIR__ . '/fonts/Inter-Bold.ttf';
-            
-            $text = "VoxBulletin";
-            $tbox = imagettfbbox(19, 0, $fontInter, $text);
-            $tw = abs($tbox[4] - $tbox[0]);
-            $totalW = $logoSize + 12 + $tw;
-            $startX = $W - 55 - $totalW;
+    // 3. Brand Globe Logo (aligned based on options)
+    $logoAlign = $options['logo_alignment'] ?? 'top-right';
+    if ($logoAlign !== 'hidden') {
+        $globePath = __DIR__ . '/brand-globe.png';
+        if (file_exists($globePath)) {
+            $globe = imagecreatefrompng($globePath);
+            if ($globe) {
+                $logoSize = 44;
+                $topY = 48;
+                $fontInter = __DIR__ . '/fonts/Inter-Bold.ttf';
+                
+                $text = "VoxBulletin";
+                $tbox = imagettfbbox(19, 0, $fontInter, $text);
+                $tw = abs($tbox[4] - $tbox[0]);
+                $totalW = $logoSize + 12 + $tw;
 
-            // Translucent rounded backing pill
-            $pillBg = imagecolorallocatealpha($im, 0, 18, 38, 35);
-            imagefilledrectangle($im, $startX - 14, $topY - 8, $startX + $totalW + 14, $topY + $logoSize + 8, $pillBg);
-            $borderCol = imagecolorallocatealpha($im, 255, 255, 255, 100);
-            imagerectangle($im, $startX - 14, $topY - 8, $startX + $totalW + 14, $topY + $logoSize + 8, $borderCol);
+                if ($logoAlign === 'top-left') {
+                    $startX = 55;
+                } elseif ($logoAlign === 'top-center') {
+                    $startX = (int)(($W - $totalW) / 2);
+                } else {
+                    $startX = $W - 55 - $totalW;
+                }
 
-            imagecopyresampled($im, $globe, $startX, $topY, 0, 0, $logoSize, $logoSize, imagesx($globe), imagesy($globe));
-            imagedestroy($globe);
+                // Translucent rounded backing pill
+                $pillBg = imagecolorallocatealpha($im, 0, 18, 38, 35);
+                imagefilledrectangle($im, $startX - 14, $topY - 8, $startX + $totalW + 14, $topY + $logoSize + 8, $pillBg);
+                $borderCol = imagecolorallocatealpha($im, 255, 255, 255, 100);
+                imagerectangle($im, $startX - 14, $topY - 8, $startX + $totalW + 14, $topY + $logoSize + 8, $borderCol);
 
-            $white = imagecolorallocate($im, 255, 255, 255);
-            imagettftext($im, 19, 0, $startX + $logoSize + 12, $topY + 31, $white, $fontInter, $text);
+                imagecopyresampled($im, $globe, $startX, $topY, 0, 0, $logoSize, $logoSize, imagesx($globe), imagesy($globe));
+                imagedestroy($globe);
+
+                $white = imagecolorallocate($im, 255, 255, 255);
+                imagettftext($im, 19, 0, $startX + $logoSize + 12, $topY + 31, $white, $fontInter, $text);
+            }
         }
     }
 
     // 4. Headline Lines (Barlow Condensed ExtraBold)
     $fontHl = __DIR__ . '/fonts/BarlowCondensed-ExtraBold.ttf';
-    $hlUpper = mb_strtoupper(trim($headline));
-    $fontSize = 48;
-    $lines = wrapTextTtf($fontSize, 0, $fontHl, $hlUpper, 960);
+    $hlCase = $options['headline_case'] ?? 'uppercase';
+    if ($hlCase === 'titlecase') {
+        $hlFormatted = mb_convert_case(trim($headline), MB_CASE_TITLE, "UTF-8");
+    } elseif ($hlCase === 'original') {
+        $hlFormatted = trim($headline);
+    } else {
+        $hlFormatted = mb_strtoupper(trim($headline));
+    }
+
+    $customHlFont = !empty($options['headline_font_size']) ? (int)$options['headline_font_size'] : 0;
+    if ($customHlFont > 0) {
+        $fontSize = (int)round($customHlFont * 0.72);
+    } else {
+        $fontSize = 48;
+    }
+    $lines = wrapTextTtf($fontSize, 0, $fontHl, $hlFormatted, 960);
     $lineH = (int)($fontSize * 1.25);
 
     // 5. Description Lines (Inter Bold)
@@ -170,7 +193,12 @@ function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $
         $cleanDesc .= '.';
     }
     $fontDesc = __DIR__ . '/fonts/Inter-Bold.ttf';
-    $descSize = 17;
+    $customDescFont = !empty($options['description_font_size']) ? (int)$options['description_font_size'] : 0;
+    if ($customDescFont > 0) {
+        $descSize = (int)round($customDescFont * 0.72);
+    } else {
+        $descSize = 17;
+    }
     $dlines = wrapTextTtf($descSize, 0, $fontDesc, $cleanDesc, 940);
     if (count($dlines) > 4) {
         $dlines = array_slice($dlines, 0, 4);
@@ -221,14 +249,17 @@ function renderAutomatedPoster($heroUrl, $headline, $description, $outputPath, $
         }
     }
 
-    // 6. Brand Footer Dividers + "VOX BULLETIN"
-    $divCol = imagecolorallocatealpha($im, 255, 255, 255, 45);
-    imageline($im, 270, $footerY, 430, $footerY, $divCol);
-    imageline($im, 650, $footerY, 810, $footerY, $divCol);
-    $brandText = "VOX   BULLETIN";
-    $bbox = imagettfbbox(14, 0, $fontDesc, $brandText);
-    $bw = abs($bbox[4] - $bbox[0]);
-    imagettftext($im, 14, 0, (int)(($W - $bw) / 2), $footerY + 6, $white, $fontDesc, $brandText);
+    // 6. Brand Footer Dividers + "VOX BULLETIN" (Optional visibility)
+    $showFooterBranding = !isset($options['footer_branding']) || !empty($options['footer_branding']);
+    if ($showFooterBranding) {
+        $divCol = imagecolorallocatealpha($im, 255, 255, 255, 45);
+        imageline($im, 270, $footerY, 430, $footerY, $divCol);
+        imageline($im, 650, $footerY, 810, $footerY, $divCol);
+        $brandText = "VOX   BULLETIN";
+        $bbox = imagettfbbox(14, 0, $fontDesc, $brandText);
+        $bw = abs($bbox[4] - $bbox[0]);
+        imagettftext($im, 14, 0, (int)(($W - $bw) / 2), $footerY + 6, $white, $fontDesc, $brandText);
+    }
 
     imagepng($im, $outputPath);
     imagedestroy($im);
@@ -304,7 +335,7 @@ if (!function_exists('callGeminiWithFailover')) {
         }
 
         $isJson = !empty($options['json']);
-        $preferredModel = $options['model'] ?? 'gemini-3.5-flash';
+        $preferredModel = $options['model'] ?? 'gemini-3.5-flash-lite';
         $temperature = $options['temperature'] ?? 0.25;
 
         $generationConfig = ['temperature' => $temperature];
@@ -319,7 +350,7 @@ if (!function_exists('callGeminiWithFailover')) {
             'generationConfig' => $generationConfig
         ], JSON_UNESCAPED_SLASHES);
 
-        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash']));
+        $modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash']));
         $errors = [];
 
         foreach ($keys as $idx => $key) {
@@ -609,7 +640,7 @@ $prompt = "You are an entertainment news graphic editor for VOX BULLETIN. Return
         . "Source Title: " . $chosen['title'] . "\n"
         . "Source Excerpt: " . $cleanSourceDesc;
 
-$gCall = callGeminiWithFailover($prompt, $config, ['json' => true, 'model' => 'gemini-3.5-flash']);
+$gCall = callGeminiWithFailover($prompt, $config, ['json' => true, 'model' => 'gemini-3.5-flash-lite']);
 if (!empty($gCall['ok'])) {
     $rawTxt = $gCall['text'] ?? '';
     if (preg_match('/\{[\s\S]*\}/', $rawTxt, $m)) {
@@ -659,18 +690,39 @@ if (!is_dir($postsFolder)) mkdir($postsFolder, 0755, true);
 $fileName = bin2hex(random_bytes(12)) . '.png';
 $outputPath = $postsFolder . '/' . $fileName;
 
-// Pick theme palette based on title
-$palettes = [
-    ['#ffd12a', '#00d2ff'], // Yellow & Sky Blue
-    ['#ff9100', '#00d2ff'], // Sunset Orange & Sky Blue
-    ['#00e676', '#ffd12a'], // Neon Green & Yellow
-    ['#f472b6', '#00d2ff'], // Hot Pink & Sky Blue
-    ['#c084fc', '#00e676']  // Electric Violet & Neon Green
+// Pick theme palette based on title or user setting
+$palettesMap = [
+    'gold-cyan' => ['#ffd12a', '#00d2ff'],
+    'orange-cyan' => ['#ff9100', '#00d2ff'],
+    'green-gold' => ['#00e676', '#ffd12a'],
+    'pink-cyan' => ['#f472b6', '#00d2ff'],
+    'violet-cyan' => ['#c084fc', '#00d2ff'],
+    'white' => ['#ffffff', '#ffffff']
 ];
-$hash = crc32($chosen['title']);
-$palette = $palettes[abs($hash) % count($palettes)];
+$paletteSetting = $config['post_color_palette'] ?? 'gold-cyan';
+if ($paletteSetting !== 'auto' && isset($palettesMap[$paletteSetting])) {
+    $palette = $palettesMap[$paletteSetting];
+} else {
+    $palettes = [
+        ['#ffd12a', '#00d2ff'],
+        ['#ff9100', '#00d2ff'],
+        ['#00e676', '#ffd12a'],
+        ['#f472b6', '#00d2ff'],
+        ['#c084fc', '#00e676']
+    ];
+    $hash = crc32($chosen['title']);
+    $palette = $palettes[abs($hash) % count($palettes)];
+}
 
-$rendered = renderAutomatedPoster($chosen['image'], $hl, $desc, $outputPath, $palette);
+$designOptions = [
+    'headline_font_size' => (int)($config['post_headline_font_size'] ?? 0),
+    'description_font_size' => (int)($config['post_description_font_size'] ?? 0),
+    'logo_alignment' => $config['post_logo_alignment'] ?? 'top-right',
+    'footer_branding' => isset($config['post_footer_branding']) ? !empty($config['post_footer_branding']) : true,
+    'headline_case' => $config['post_headline_case'] ?? 'uppercase',
+];
+
+$rendered = renderAutomatedPoster($chosen['image'], $hl, $desc, $outputPath, $palette, $designOptions);
 if (!$rendered || !file_exists($outputPath)) {
     $msg = 'Failed to generate 1080x1350 poster image.';
     $pdo->prepare('INSERT INTO automation_logs (status, message) VALUES (?, ?)')->execute(['error', $msg]);

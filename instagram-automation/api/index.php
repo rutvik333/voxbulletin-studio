@@ -117,7 +117,7 @@ function testGeminiApiKey($key) {
 		return ['ok' => false, 'error' => 'API Key is empty or placeholder.'];
 	}
 
-	$modelsToTry = ['gemini-3.5-flash', 'gemini-3.8-flash'];
+	$modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
 	$lastErr = '';
 	$lastCode = 0;
 	$quotaHitOn = [];
@@ -183,7 +183,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
 	}
 
 	$isJson = !empty($options['json']);
-	$preferredModel = $options['model'] ?? 'gemini-3.5-flash';
+	$preferredModel = $options['model'] ?? 'gemini-3.5-flash-lite';
 	$temperature = $options['temperature'] ?? 0.25;
 
 	$generationConfig = ['temperature' => $temperature];
@@ -198,7 +198,7 @@ function callGeminiWithFailover($prompt, $cfg, $options = []) {
 		'generationConfig' => $generationConfig
 	], JSON_UNESCAPED_SLASHES);
 
-	$modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash']));
+	$modelsToTry = array_values(array_unique([$preferredModel, 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash']));
 	$errors = [];
 
 	foreach ($keys as $idx => $key) {
@@ -455,7 +455,13 @@ try {
    'has_smtp_pass' => !empty($c['smtp_pass']),
    'meta_access_token' => $c['meta_access_token'] ?? '',
    'meta_instagram_id' => $c['meta_instagram_id'] ?? '',
-   'meta_facebook_page_id' => $c['meta_facebook_page_id'] ?? ''
+   'meta_facebook_page_id' => $c['meta_facebook_page_id'] ?? '',
+   'post_headline_font_size' => (int)($c['post_headline_font_size'] ?? 0),
+   'post_description_font_size' => (int)($c['post_description_font_size'] ?? 0),
+   'post_logo_alignment' => $c['post_logo_alignment'] ?? 'top-right',
+   'post_footer_branding' => isset($c['post_footer_branding']) ? !empty($c['post_footer_branding']) : true,
+   'post_headline_case' => $c['post_headline_case'] ?? 'uppercase',
+   'post_color_palette' => $c['post_color_palette'] ?? 'gold-cyan'
   ]);
  }
  if($action==='save_settings'){
@@ -501,6 +507,13 @@ try {
   $finalMetaIg = ($metaIg !== '') ? $metaIg : ($c['meta_instagram_id'] ?? '');
   $finalMetaFb = ($metaFb !== '') ? $metaFb : ($c['meta_facebook_page_id'] ?? '');
 
+  $postHlFont = isset($in['post_headline_font_size']) ? (int)$in['post_headline_font_size'] : (int)($c['post_headline_font_size'] ?? 0);
+  $postDescFont = isset($in['post_description_font_size']) ? (int)$in['post_description_font_size'] : (int)($c['post_description_font_size'] ?? 0);
+  $postLogoAlign = isset($in['post_logo_alignment']) ? trim((string)$in['post_logo_alignment']) : ($c['post_logo_alignment'] ?? 'top-right');
+  $postFooterBranding = isset($in['post_footer_branding']) ? !empty($in['post_footer_branding']) : (isset($c['post_footer_branding']) ? !empty($c['post_footer_branding']) : true);
+  $postHlCase = isset($in['post_headline_case']) ? trim((string)$in['post_headline_case']) : ($c['post_headline_case'] ?? 'uppercase');
+  $postPalette = isset($in['post_color_palette']) ? trim((string)$in['post_color_palette']) : ($c['post_color_palette'] ?? 'gold-cyan');
+
   $configFile = dirname(__DIR__).'/config.php';
   $content = "<?php\nreturn [\n"
    . "  'admin_password' => " . var_export($curPass, true) . ",\n"
@@ -521,6 +534,12 @@ try {
    . "  'meta_access_token' => " . var_export($finalMetaTok, true) . ",\n"
    . "  'meta_instagram_id' => " . var_export($finalMetaIg, true) . ",\n"
    . "  'meta_facebook_page_id' => " . var_export($finalMetaFb, true) . ",\n"
+   . "  'post_headline_font_size' => " . var_export($postHlFont, true) . ",\n"
+   . "  'post_description_font_size' => " . var_export($postDescFont, true) . ",\n"
+   . "  'post_logo_alignment' => " . var_export($postLogoAlign, true) . ",\n"
+   . "  'post_footer_branding' => " . var_export($postFooterBranding, true) . ",\n"
+   . "  'post_headline_case' => " . var_export($postHlCase, true) . ",\n"
+   . "  'post_color_palette' => " . var_export($postPalette, true) . ",\n"
    . "  'db_host' => " . var_export($c['db_host'] ?? 'localhost', true) . ",\n"
    . "  'db_name' => " . var_export($c['db_name'] ?? '', true) . ",\n"
    . "  'db_user' => " . var_export($c['db_user'] ?? '', true) . ",\n"
@@ -542,6 +561,12 @@ try {
   $c['meta_access_token'] = $finalMetaTok;
   $c['meta_instagram_id'] = $finalMetaIg;
   $c['meta_facebook_page_id'] = $finalMetaFb;
+  $c['post_headline_font_size'] = $postHlFont;
+  $c['post_description_font_size'] = $postDescFont;
+  $c['post_logo_alignment'] = $postLogoAlign;
+  $c['post_footer_branding'] = $postFooterBranding;
+  $c['post_headline_case'] = $postHlCase;
+  $c['post_color_palette'] = $postPalette;
 
   out([
    'ok' => true,
